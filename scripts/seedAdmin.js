@@ -1,25 +1,19 @@
-const fs = require("fs");
 const path = require("path");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
+const { getDatabaseConnectionString } = require("../utilities/database");
 
 if (process.env.NODE_ENV !== "production" && process.env.ENV !== "production") {
-  const defaultEnvPath = fs.existsSync(path.join(__dirname, "..", ".env"))
-    ? path.join(__dirname, "..", ".env")
-    : path.join(__dirname, "..", "config.env");
-  dotenv.config({ path: process.env.ENV_FILE || defaultEnvPath });
+  dotenv.config({ path: process.env.ENV_FILE || path.join(__dirname, "..", ".env") });
 }
 
 const userModel = require("../Models/userModel");
 
 const seedAdmin = async () => {
-  const connectionString = process.env.DATABASE_CONNECTION_STRING;
+  const connectionString = getDatabaseConnectionString();
   const email = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD;
 
-  if (!connectionString) {
-    throw new Error("DATABASE_CONNECTION_STRING is required.");
-  }
   if (!email || !password) {
     throw new Error("Set ADMIN_EMAIL and ADMIN_PASSWORD for this command.");
   }

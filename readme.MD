@@ -8,26 +8,24 @@ Ticketify is a match-ticketing app with a React frontend, an Express API, and Mo
 - Backend: Node.js and Express (`Controllers/`, `Routes/`, `Models/`)
 - Database: MongoDB through Mongoose 9 and its bundled current Node.js driver
 
-## Local setup
+## MongoDB Atlas setup
 
-1. Install Node.js and MongoDB, then install dependencies:
+Ticketify uses MongoDB Atlas for both local development and deployment. The backend and admin seed command share `DATABASE_CONNECTION_STRING`; local development loads it from `.env`, while production uses the deployment environment. Atlas SRV URIs (`mongodb+srv://`) are required.
+
+1. Create an Atlas cluster, a database user, and an IP access-list entry that allows your development machine. Copy the Node.js driver connection string from Atlas's **Connect → Drivers** page.
+
+2. Install Node.js and project dependencies:
 
    ```sh
    npm install
    ```
 
-2. Copy `.env.example` to `.env`. Set `DATABASE_CONNECTION_STRING` to your MongoDB connection string and replace `JWT_SECRET_CODE` with a long random secret. Keep `.env` private; it is ignored by Git.
+3. Copy `.env.example` to `.env`. Replace the `DATABASE_CONNECTION_STRING` placeholder with the complete Atlas driver URI, including the database username, URL-encoded password, and cluster hostname. Replace `JWT_SECRET_CODE` with a long random secret. Keep `.env` private; it is ignored by Git.
 
    MongoDB credentials belong only in the backend environment. The React app calls the Express API and must never connect to MongoDB directly.
-   The backend reuses one Mongoose connection and leaves pool settings at driver defaults, which is appropriate for local, low-traffic development.
+   The backend reuses one Mongoose connection and leaves pool settings at driver defaults for this low-traffic application.
 
-   On Windows, if MongoDB is installed as a service but is stopped, open PowerShell as Administrator and run:
-
-   ```powershell
-   Start-Service -Name MongoDB
-   ```
-
-3. Start the backend and frontend in separate terminals:
+4. Start the backend and frontend in separate terminals:
 
    ```sh
    npm run start:dev
@@ -39,14 +37,14 @@ Ticketify is a match-ticketing app with a React frontend, an Express API, and Mo
 
    Open the Vite URL printed in the frontend terminal. Vite proxies `/api` requests to the local Express server.
 
-4. To build the production frontend and serve it from Express:
+5. To build the production frontend and serve it from Express:
 
    ```sh
    npm run build
    npm start
    ```
 
-   Deployments should provide `DATABASE_CONNECTION_STRING` and `JWT_SECRET_CODE` as environment variables. `heroku-postbuild` builds the React app during a Heroku deployment.
+   Deployments should provide the Atlas `DATABASE_CONNECTION_STRING` and `JWT_SECRET_CODE` as environment variables. `heroku-postbuild` builds the React app during a Heroku deployment.
 
 ## Render deployment
 

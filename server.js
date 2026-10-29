@@ -1,24 +1,16 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-const fs = require("fs");
 const path = require("path");
 
 if (process.env.NODE_ENV !== "production" && process.env.ENV !== "production") {
-  const defaultEnvPath = fs.existsSync(path.join(__dirname, ".env"))
-    ? path.join(__dirname, ".env")
-    : path.join(__dirname, "config.env");
-  dotenv.config({ path: process.env.ENV_FILE || defaultEnvPath });
+  dotenv.config({ path: process.env.ENV_FILE || path.join(__dirname, ".env") });
 }
 
 const app = require("./app");
+const { getDatabaseConnectionString } = require("./utilities/database");
 
 const startApp = async () => {
-  const connectionString = process.env.DATABASE_CONNECTION_STRING;
-  if (!connectionString) {
-    throw new Error(
-      "DATABASE_CONNECTION_STRING is required. Add it to .env or your deployment environment."
-    );
-  }
+  const connectionString = getDatabaseConnectionString();
   console.log("Connecting to MongoDB...");
   await mongoose.connect(connectionString);
   console.log("MongoDB connected.");
