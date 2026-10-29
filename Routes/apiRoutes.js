@@ -1,5 +1,6 @@
 const express = require("express");
 const api = require("../Controllers/apiController");
+const uploads = require("../Controllers/uploadController");
 const confirmEmail = require("../API/confirmEmail");
 
 const router = express.Router();
@@ -21,6 +22,7 @@ router.get("/matches/:id", api.getMatch);
 router.get("/teams", api.getTeams);
 router.get("/stadiums", api.getStadiums);
 router.get("/competitions", api.getCompetitions);
+router.get("/uploads/:id", uploads.getImage);
 
 router.get("/users/me", api.protect, api.getCurrentUser);
 router.patch("/users/me", api.protect, api.updateProfile);
@@ -29,6 +31,7 @@ router.get("/dashboard/me", api.protect, api.getUserDashboard);
 router.post("/tickets", api.protect, api.purchaseTicket);
 
 router.get("/admin/dashboard", ...admin, api.getAdminDashboard);
+router.post("/admin/uploads", ...admin, uploads.receiveImage, uploads.uploadImage);
 router.get("/admin/users", ...admin, api.getUsers);
 router.get("/admin/tickets", ...admin, api.getTickets);
 router.get("/admin/matches", ...admin, (req, res, next) => {

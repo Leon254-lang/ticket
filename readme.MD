@@ -89,12 +89,16 @@ All new API routes are under `/api` and return JSON. Authentication uses the exi
 | `GET` | `/api/auth/me` | Signed-in |
 | `GET` | `/api/matches`, `/api/matches/:id` | Public |
 | `GET` | `/api/teams`, `/api/stadiums`, `/api/competitions` | Public |
+| `GET` | `/api/uploads/:id` | Public image |
+| `POST` | `/api/admin/uploads` | Admin (PNG, JPEG, WebP, or GIF; 5 MB max) |
 | `POST` | `/api/tickets` | Signed-in |
 | `GET` | `/api/users/me/tickets`, `/api/dashboard/me` | Signed-in |
 | `GET` | `/api/admin/dashboard`, `/api/admin/users`, `/api/admin/tickets`, `/api/admin/matches` | Admin |
 | `POST`, `PATCH`, `DELETE` | `/api/:resource[/:id]` | Admin |
 
 Supported admin resources are `matches`, `teams`, `stadiums`, and `competitions`. Successful collection requests return a `data` array and pagination information; errors return a JSON `message`.
+
+Admins can upload team logos and backgrounds, stadium images, competition logos, and match cover images from the resource forms. Images are stored in MongoDB Atlas GridFS (not Render's temporary filesystem); supported formats are PNG, JPEG, WebP, and GIF, up to 5 MB per image.
 
 ## Email and payments
 

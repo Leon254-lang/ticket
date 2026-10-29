@@ -665,8 +665,8 @@ const resourceConfig = {
     fields: [
       { name: "name", label: "Team name", required: true },
       { name: "sport", label: "Sport", type: "select", options: sports },
-      { name: "logo", label: "Logo image URL or filename", required: true },
-      { name: "bgImage", label: "Background image URL or filename", required: true },
+      { name: "logo", label: "Team logo", type: "image", required: true },
+      { name: "bgImage", label: "Team background image", type: "image", required: true },
     ],
   },
   stadiums: {
@@ -675,7 +675,7 @@ const resourceConfig = {
     fields: [
       { name: "name", label: "Stadium name", required: true },
       { name: "sport", label: "Sport", type: "select", options: sports },
-      { name: "image", label: "Stadium image URL or filename", required: true },
+      { name: "image", label: "Stadium image", type: "image", required: true },
       { name: "country", label: "Country", required: true },
       { name: "province", label: "Province / state", required: true },
       { name: "city", label: "City", required: true },
@@ -688,7 +688,7 @@ const resourceConfig = {
     endpoint: "/competitions",
     fields: [
       { name: "name", label: "Competition name", required: true },
-      { name: "logo", label: "Logo image URL or filename", required: true },
+      { name: "logo", label: "Competition logo", type: "image", required: true },
     ],
   },
   matches: {
@@ -704,7 +704,7 @@ const resourceConfig = {
       { name: "startBuyDate", label: "Ticket sales start", type: "datetime-local", required: true },
       { name: "endBuyDate", label: "Ticket sales end", type: "datetime-local", required: true },
       { name: "matchDate", label: "Match date", type: "datetime-local", required: true },
-      { name: "cover", label: "Cover image URL or filename" },
+      { name: "cover", label: "Match cover image", type: "image" },
       { name: "isDisabled", label: "Disabled", type: "checkbox" },
     ],
   },
@@ -776,6 +776,12 @@ function AdminResourcePage() {
         }
       }
       const body = toRequestValues(resource, form);
+      for (const field of config.fields.filter((item) => item.type === "image" && form[item.name] instanceof File)) {
+        const upload = new FormData();
+        upload.append("image", form[field.name]);
+        const result = await api("/admin/uploads", { method: "POST", body: upload });
+        body[field.name] = result.data.url;
+      }
       const response = await api(isEdit ? `/${resource}/${id}` : `/${resource}`, {
         method: isEdit ? "PATCH" : "POST",
         body,
@@ -885,8 +891,38 @@ function AdminField({ field, value, onChange, related }) {
   if (field.type === "select") {
     return <SelectField label={field.label} value={value || ""} onChange={onChange} required options={field.options.map((item) => [item, capitalize(item)])} />;
   }
+  if (field.type === "image") {
+    return <ImageUploadField field={field} value={value} onChange={onChange} />;
+  }
   if (field.type === "checkbox") return <label className="checkbox-field"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /><span>{field.label}</span></label>;
   return <Field label={field.label} type={field.type || "text"} value={value ?? ""} onChange={onChange} required={field.required} multiline={field.type === "textarea"} hint={field.name === "stands" ? 'Example: [{"id":"A1","location":"west","floor":"1","capacity":100,"price":25,"availablity":true}]' : ""} />;
+}
+
+function ImageUploadField({ field, value, onChange }) {
+  const [preview, setPreview] = useState("");
+
+  useEffect(() => {
+    if (value instanceof File) {
+      const objectUrl = URL.createObjectURL(value);
+      setPreview(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    }
+    setPreview(value ? imageUrl(value) : "");
+  }, [value]);
+
+  return (
+    <label className="field image-upload-field">
+      <span>{field.label}{field.required && <b> *</b>}</span>
+      <input
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        required={field.required && !value}
+        onChange={(event) => onChange(event.target.files?.[0] || value || "")}
+      />
+      <small className="field-hint">PNG, JPEG, WebP, or GIF · up to 5 MB. Images are stored with your MongoDB Atlas data.</small>
+      {preview && <img className="image-upload-preview" src={preview} alt={`${field.label} preview`} />}
+    </label>
+  );
 }
 
 function SearchableEntityField({ field, value, onChange, options }) {

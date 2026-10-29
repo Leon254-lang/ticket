@@ -271,6 +271,8 @@ tbody tr:last-child td { border-bottom: 0; }
 .status-pill { padding: 5px 8px; border-radius: 20px; background: #f0f3f8; color: #626d82; font-size: 8px; }
 .admin-form-card { max-width: 760px; }
 .admin-form-card > form { margin-top: 23px; }
+.image-upload-field input[type="file"] { min-height: auto; padding: 9px; background: #fff; }
+.image-upload-preview { width: min(100%, 240px); max-height: 180px; object-fit: contain; object-position: left center; padding: 8px; border: 1px solid #e1e5ed; border-radius: 8px; background: #fff; }
 .form-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 6px; }
 .notice { position: relative; padding: 12px 14px; border: 1px solid transparent; border-radius: 9px; font-size: 10px; line-height: 1.5; }
 .notice-error { border-color: #f3d0d0; color: #9b4545; background: #fff6f5; }
