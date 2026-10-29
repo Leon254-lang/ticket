@@ -102,7 +102,7 @@ exports.getStadiumDetails = catchAsync(async (req, res, next) => {
     );
   }
 
-  res.render("adminpanel_E_stadium", {
+  res.render("adminpanel_e_stadium", {
     title: "Edit stadium",
     user: req.user,
     stadium,

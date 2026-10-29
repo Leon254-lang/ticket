@@ -79,7 +79,7 @@ exports.getTeamDetails = catchAsync(async (req, res, next) => {
   if (!team)
     return res.redirect("/user/adminpanel/teams?error=Invalid team id!");
 
-  return res.render("adminpanel_E_team", {
+  return res.render("adminpanel_e_team", {
     title: "Edit team",
     user: req.user,
     role: "admin",

@@ -1,23 +1,40 @@
-const app = require("./app");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-//specify app`s config file
-if (process.env.ENV !== "production") {
-  dotenv.config({ path: "./config.env" });
+const fs = require("fs");
+const path = require("path");
+
+if (process.env.NODE_ENV !== "production" && process.env.ENV !== "production") {
+  const defaultEnvPath = fs.existsSync(path.join(__dirname, ".env"))
+    ? path.join(__dirname, ".env")
+    : path.join(__dirname, "config.env");
+  dotenv.config({ path: process.env.ENV_FILE || defaultEnvPath });
 }
-//Connecting to Database
+
+const app = require("./app");
+
 const startApp = async () => {
-  await mongoose.connect(process.env.DATABASE_CONNECTION_STRING, {
-    useUnifiedTopology: true,
-    useNewUrlParser: true,
-    useCreateIndex: true,
-    useFindAndModify: false,
-  });
-  app.listen(process.env.PORT || 3000, () => {
-    console.log(
-      "Application has been started successfully... on port " + process.env.PORT
+  const connectionString = process.env.DATABASE_CONNECTION_STRING;
+  if (!connectionString) {
+    throw new Error(
+      "DATABASE_CONNECTION_STRING is required. Add it to .env or your deployment environment."
     );
+  }
+  console.log("Connecting to MongoDB...");
+  await mongoose.connect(connectionString);
+  console.log("MongoDB connected.");
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => {
+    console.log(`Ticketify is listening on port ${port}`);
   });
 };
 
-startApp();
+startApp().catch((error) => {
+  if (error.name === "MongooseServerSelectionError") {
+    console.error(
+      "MongoDB is unreachable. Start the MongoDB service or check that DATABASE_CONNECTION_STRING points to a reachable database."
+    );
+  } else {
+    console.error(`Ticketify failed to start (${error.name || "unknown error"}).`);
+  }
+  process.exitCode = 1;
+});

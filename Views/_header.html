@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Static Ticketify page preview">
+  <title>Ticketify | Header preview</title>
+  <link rel="stylesheet" href="../Static/front/styles/styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+</head>
+<body>
+<header>
+    <nav class="nav primary-color flex">
+        <div class="logo">
+            <a href="index.html">
+                <h3 class="white">Ticketify
+                </h3>
+            </a>
+        </div>
+        <ul class="nav-ul flex">
+            <li>
+                <a class="white navbar-items" href="index.html">Home
+                </a>
+            </li>
+            <li class="navbar-li-sports">
+                <a class="white navbar-items" href="#">Sports
+                    <span class="bi-chevron-compact-down">
+                    </span>
+                </a>
+                <ul>
+                    <li>
+                        <a href="index.html?sport=Football">Football
+                        </a>
+                    </li>
+                    <li>
+                        <a href="index.html?sport=Basketball">Basketball
+                        </a>
+                    </li>
+                    <li>
+                        <a href="index.html?sport=Volleyball">Volleyball
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="navbar-li-search">
+                <span class="white navbar-items">Search
+                </span>
+            </li>
+        </ul>
+        <div class="user-action flex">
+
+                <span class="acoount-btn-nav active-user-action-btn">Account
+                    <span class="bi-chevron-compact-down">
+                    </span>
+                    <ul class="none">
+                        <li>
+                            <a href="panel_dashboard.html">Panel
+                            </a>
+                        </li>
+
+                            <li>
+                                <a href="adminpanel_dashboard.html">Admin panel
+                                </a>
+                            </li>
+
+                        <li>
+                            <a href="signin.html">Log out
+                            </a>
+                        </li>
+                    </ul>
+                </span>
+
+        </div>
+        <form class="flex none" id="navbar-search" action="#" method="GET">
+            <input type="text" name="filter" placeholder="What are you looking for?">
+            <input type="submit" value="search">
+        </form>
+    </nav>
+</header>
+<script src="../Static/front/js/uiTools.js"></script>
+<script src="../Static/front/js/ui.js"></script>
+<script src="../Static/front/js/inputValidators.js"></script>
+</body>
+</html>

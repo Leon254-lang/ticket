@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Discover the fixture, match-day details, and ticket updates with Ticketify.">
+    <link rel="stylesheet" href="../Static/front/styles/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+    <title>Ticketify | FC Barcelona vs Real Madrid CF</title>
+  </head>
+  <body class="match-page">
+    <header>
+    <nav class="nav primary-color flex">
+        <div class="logo">
+            <a href="index.html">
+                <h3 class="white">Ticketify
+                </h3>
+            </a>
+        </div>
+        <ul class="nav-ul flex">
+            <li>
+                <a class="white navbar-items" href="index.html">Home
+                </a>
+            </li>
+            <li class="navbar-li-sports">
+                <a class="white navbar-items" href="#">Sports
+                    <span class="bi-chevron-compact-down">
+                    </span>
+                </a>
+                <ul>
+                    <li>
+                        <a href="index.html?sport=Football">Football
+                        </a>
+                    </li>
+                    <li>
+                        <a href="index.html?sport=Basketball">Basketball
+                        </a>
+                    </li>
+                    <li>
+                        <a href="index.html?sport=Volleyball">Volleyball
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="navbar-li-search">
+                <span class="white navbar-items">Search
+                </span>
+            </li>
+        </ul>
+        <div class="user-action flex">
+
+                <span class="acoount-btn-nav active-user-action-btn">Account
+                    <span class="bi-chevron-compact-down">
+                    </span>
+                    <ul class="none">
+                        <li>
+                            <a href="panel_dashboard.html">Panel
+                            </a>
+                        </li>
+
+                            <li>
+                                <a href="adminpanel_dashboard.html">Admin panel
+                                </a>
+                            </li>
+
+                        <li>
+                            <a href="signin.html">Log out
+                            </a>
+                        </li>
+                    </ul>
+                </span>
+
+        </div>
+        <form class="flex none" id="navbar-search" action="/" method="GET">
+            <input type="text" name="filter" placeholder="What are you looking for?">
+            <input type="submit" value="search">
+        </form>
+    </nav>
+</header>
+
+    <main class="match-page-main">
+        <section class="match-detail-shell" aria-labelledby="match-title">
+            <nav class="match-breadcrumbs" aria-label="Breadcrumb">
+                <a href="index.html">Home</a>
+                <i class="bi-chevron-right" aria-hidden="true"></i>
+                <span>Match details</span>
+            </nav>
+            <div class="match-detail-heading">
+                <p class="storefront-eyebrow storefront-eyebrow-dark"><span></span> Football <span>·</span> Fixture spotlight</p>
+                <h1 id="match-title">FC Barcelona <span>vs</span> Real Madrid CF</h1>
+                <p>Some fixtures are more than a game. Be there for every moment.</p>
+            </div>
+            <figure class="match-detail-cover">
+                <img src="../Static/images/matches/1650641811642-match-cover-6262c3-6262c4.jpeg" alt="The Barcelona and Real Madrid rivalry on the stadium scoreboard">
+                <figcaption><i class="bi-lightning-charge-fill"></i> A rivalry like no other</figcaption>
+            </figure>
+            <div class="match-detail-facts" aria-label="Fixture information">
+                <div>
+                    <i class="bi-calendar-event" aria-hidden="true"></i>
+                    <span>Match date</span>
+                    <strong>To be announced</strong>
+                </div>
+                <div>
+                    <i class="bi-clock" aria-hidden="true"></i>
+                    <span>Kick-off</span>
+                    <strong>To be announced</strong>
+                </div>
+                <div>
+                    <i class="bi-geo-alt" aria-hidden="true"></i>
+                    <span>Venue</span>
+                    <strong>To be announced</strong>
+                </div>
+            </div>
+        </section>
+        <section class="match-ticket-callout" aria-labelledby="ticket-callout-title">
+            <div>
+                <p class="storefront-eyebrow">Make this one a memory</p>
+                <h2 id="ticket-callout-title">Be there when it happens.</h2>
+                <p>Fixture and ticket details are on the way. Explore other matches while you wait.</p>
+            </div>
+            <a class="storefront-primary-link" href="index.html#upcoming-matches">Explore matches <i class="bi-arrow-right"></i></a>
+        </section>
+    </main>
+
+    <footer class="flex">
+    <div class="links">
+        <a href="#">Privacy and Policy
+        </a>
+
+        <a href="#">Terms and Conditions
+        </a>
+
+        <a href="#">F&Q
+        </a>
+    </div>
+    <div class="copyright">
+        <span>© Ticketify. All rights reserved.
+        </span>
+    </div>
+    <div class="socials flex">
+        <a href="#">
+            <i class="bi-telegram">
+            </i>
+        </a>
+        <a href="#">
+            <i class="bi-twitter">
+            </i>
+        </a>
+        <a href="#">
+            <i class="bi-instagram">
+            </i>
+        </a>
+    </div>
+</footer>
+
+
+
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="../Static/front/js/uiTools.js"></script>
+    <script src="../Static/front/js/ui.js"></script>
+    <script src="../Static/front/js/inputValidators.js"></script>
+  </body>
+</html>

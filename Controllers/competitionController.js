@@ -73,7 +73,7 @@ exports.getCompetitionDetails = catchAsync(async (req, res, next) => {
       "/user/adminpanel/competitions?error=Invalid competition id!"
     );
   }
-  res.status(201).render("adminpanel_E_competition", {
+  res.status(201).render("adminpanel_e_competition", {
     title: "Edit comps",
     user: req.body.user,
     role: "admin",

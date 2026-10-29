@@ -1,69 +1,97 @@
-# Ticketify website
+# Ticketify
 
-Ticketify is a ticket selling platform that sells tickets for this three sports:
+Ticketify is a match-ticketing app with a React frontend, an Express API, and MongoDB storage.
 
-- Football
-- Volleyball
-- Basketball
+## Stack
 
----
+- Frontend: React 18, React Router, and Vite (`client/`)
+- Backend: Node.js and Express (`Controllers/`, `Routes/`, `Models/`)
+- Database: MongoDB through Mongoose 9 and its bundled current Node.js driver
 
-## Used technologies and tools
+## Local setup
 
-- Backend: **Nodejs - ExpressJS**
-- Frontend **Vanilla js - PUG**
-- Email service: **Mailtrap**
-  Create an account in https://mailtrap.io and simply copy needed inforamtion in **config.env** file
+1. Install Node.js and MongoDB, then install dependencies:
 
-- Template engine: **PUG**
+   ```sh
+   npm install
+   ```
 
-- Database: **MongoDB**
+2. Copy `.env.example` to `.env`. Set `DATABASE_CONNECTION_STRING` to your MongoDB connection string and replace `JWT_SECRET_CODE` with a long random secret. Keep `.env` private; it is ignored by Git.
 
----
+   MongoDB credentials belong only in the backend environment. The React app calls the Express API and must never connect to MongoDB directly.
+   The backend reuses one Mongoose connection and leaves pool settings at driver defaults, which is appropriate for local, low-traffic development.
 
-### Get started:
+   On Windows, if MongoDB is installed as a service but is stopped, open PowerShell as Administrator and run:
 
-1. For logging in as an admin, use **admin@admin.com** and **123456**
-1. For logging in as an user, you can simply create an acocount and use it
-1. For buying tickets you need to verify your email and add PassportNO or ID to your account
-1. Emails on heroku deployment are verified by default 
-1. You can Add/remove/edit stuff in panel admin
-1. You can't Add/Change/Remove images on heroku deployment, it needs credit card for enabling that feature
+   ```powershell
+   Start-Service -Name MongoDB
+   ```
 
-### Run locally
-1. Import files in data folder to get started
-1. For logging in as an admin, use **admin@admin.com** and **adminadmin**
-1. For logging in as a user you can use **test1|2|3@test.com** and **testtest**
+3. Start the backend and frontend in separate terminals:
 
-#### It needs your cooperation
+   ```sh
+   npm run start:dev
+   ```
 
-Since that i'm not a UI/UX designer I think it's design is a disaster, not a disaster actually :) but it's not that good and it really need some improvments.
+   ```sh
+   npm run dev:frontend
+   ```
 
-- [ ] Some changes in design
+   Open the Vite URL printed in the frontend terminal. Vite proxies `/api` requests to the local Express server.
 
-Because of my lack of time I just skip some features like:
+4. To build the production frontend and serve it from Express:
 
-- In a real senario, admins must see the tickets details such as User's name, ID , etc to authenticate it, but because it was just a repetitive code and design I just skipped it.
-  &nbsp;
-- [ ] Ticket details page
-      &nbsp;
+   ```sh
+   npm run build
+   npm start
+   ```
 
-- It's not responsive
-  &nbsp;
-- [ ] Do some CSS
-      &nbsp;
+   Deployments should provide `DATABASE_CONNECTION_STRING` and `JWT_SECRET_CODE` as environment variables. `heroku-postbuild` builds the React app during a Heroku deployment.
 
-- for same reason, You can't see all of users details in admin panel, It's just a summary.
-  &nbsp;
+## Create or reset an admin account
 
-- [ ] Users Details
-      &nbsp;
+Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` only in the current terminal session, then run `npm run seed:admin`. The command creates the account if it does not exist, or promotes and resets the matching account if it does. It stores only the bcrypt password hash in MongoDB; do not commit credentials or add them to seed data.
 
-- It would be nice if we can set coupons for users
-  &nbsp;
-- [ ] Users Details
-      &nbsp;
+For PowerShell:
 
----
+```powershell
+$env:ADMIN_EMAIL = Read-Host "Admin email"
+$securePassword = Read-Host "Admin password" -AsSecureString
+$passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+  $env:ADMIN_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPointer)
+} finally {
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPointer)
+}
+npm run seed:admin
+Remove-Item Env:ADMIN_EMAIL, Env:ADMIN_PASSWORD
+```
 
-I'll be so glad to see your reviews about my code guys :) That was the main reason that I created Ticketify as my first Nodejs website.
+## Frontend routes
+
+- Public: `/`, `/matches/:id`, `/signin`, `/signup`, `/user/resetpassword`
+- User account: `/panel/dashboard`, `/panel/tickets`, `/panel/account`, `/panel/contactus`
+- Admin: `/adminpanel/dashboard`, `/adminpanel/users`, `/adminpanel/matches`, `/adminpanel/teams`, `/adminpanel/stadiums`, `/adminpanel/competitions`, `/adminpanel/tickets`
+
+The client also redirects the previous `.html` page URLs to the corresponding React routes where possible.
+
+## API overview
+
+All new API routes are under `/api` and return JSON. Authentication uses the existing HTTP-only `jwt` cookie.
+
+| Method | Endpoint | Access |
+|---|---|---|
+| `POST` | `/api/auth/signup`, `/api/auth/login`, `/api/auth/logout` | Public / signed-in |
+| `GET` | `/api/auth/me` | Signed-in |
+| `GET` | `/api/matches`, `/api/matches/:id` | Public |
+| `GET` | `/api/teams`, `/api/stadiums`, `/api/competitions` | Public |
+| `POST` | `/api/tickets` | Signed-in |
+| `GET` | `/api/users/me/tickets`, `/api/dashboard/me` | Signed-in |
+| `GET` | `/api/admin/dashboard`, `/api/admin/users`, `/api/admin/tickets`, `/api/admin/matches` | Admin |
+| `POST`, `PATCH`, `DELETE` | `/api/:resource[/:id]` | Admin |
+
+Supported admin resources are `matches`, `teams`, `stadiums`, and `competitions`. Successful collection requests return a `data` array and pagination information; errors return a JSON `message`.
+
+## Email and payments
+
+Email verification and password-reset flows require the `NODE_MAILER_*` settings. Ticket booking checks the match sales window, account verification, identity details, and stand availability. A payment provider is not connected to the booking flow yet.

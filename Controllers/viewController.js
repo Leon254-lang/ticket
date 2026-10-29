@@ -175,10 +175,10 @@ exports.showUserDetails = catchAsync(async (req, res, next) => {
 //#region Admin panel view controllers
 
 exports.showAdminDashboard = catchAsync(async (req, res, next) => {
-  let usersCount = await userModel.count();
-  let matchesCount = await matchModel.count();
-  let ticketsCount = await ticketModel.count();
-  let compsCount = await compModel.count();
+  let usersCount = await userModel.countDocuments();
+  let matchesCount = await matchModel.countDocuments();
+  let ticketsCount = await ticketModel.countDocuments();
+  let compsCount = await compModel.countDocuments();
   usersCount.toLocaleString();
   matchesCount.toLocaleString();
   ticketsCount.toLocaleString();
@@ -260,7 +260,7 @@ exports.showAdminDashboard = catchAsync(async (req, res, next) => {
 });
 
 exports.showCompetitionForm = catchAsync(async (req, res, next) => {
-  return res.render("adminpanel_C_competition", {
+  return res.render("adminpanel_c_competition", {
     title: "Create competition",
     error: req.query.error,
     success: req.query.success,
@@ -269,7 +269,7 @@ exports.showCompetitionForm = catchAsync(async (req, res, next) => {
 });
 
 exports.showTeamForm = catchAsync(async (req, res, next) => {
-  return res.render("adminpanel_C_team", {
+  return res.render("adminpanel_c_team", {
     title: "Create Team",
     panel: "admin",
     user: req.body.user,
@@ -279,7 +279,7 @@ exports.showTeamForm = catchAsync(async (req, res, next) => {
 });
 
 exports.showStadiumForm = catchAsync(async (req, res, next) => {
-  return res.render("adminpanel_C_stadium", {
+  return res.render("adminpanel_c_stadium", {
     title: "Create stadium",
     action: "add",
     panel: "admin",
@@ -290,7 +290,7 @@ exports.showStadiumForm = catchAsync(async (req, res, next) => {
 });
 
 exports.showMatchForm = catchAsync(async (req, res, next) => {
-  return res.render("adminpanel_C_match", {
+  return res.render("adminpanel_c_match", {
     title: "Add/edit match",
     action: "add",
     panel: "admin",

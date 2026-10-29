@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../Static/front/styles/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+    <title>Ticketify | Adminpanel Stadiums</title>
+  </head>
+  <body class="panel-body">
+    <header>
+    <nav class="nav primary-color flex">
+        <div class="logo">
+            <a href="index.html">
+                <h3 class="white">Ticketify
+                </h3>
+            </a>
+        </div>
+        <ul class="nav-ul flex">
+            <li>
+                <a class="white navbar-items" href="index.html">Home
+                </a>
+            </li>
+            <li class="navbar-li-sports">
+                <a class="white navbar-items" href="#">Sports
+                    <span class="bi-chevron-compact-down">
+                    </span>
+                </a>
+                <ul>
+                    <li>
+                        <a href="index.html?sport=football">Football
+                        </a>
+                    </li>
+                    <li>
+                        <a href="index.html?sport=basketball">Basketball
+                        </a>
+                    </li>
+                    <li>
+                        <a href="index.html?sport=volleyball">Volleyball
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="navbar-li-search">
+                <span class="white navbar-items">Search
+                </span>
+            </li>
+        </ul>
+        <div class="user-action flex">
+
+                <span class="acoount-btn-nav active-user-action-btn">Account
+                    <span class="bi-chevron-compact-down">
+                    </span>
+                    <ul class="none">
+                        <li>
+                            <a href="panel_dashboard.html">Panel
+                            </a>
+                        </li>
+
+                            <li>
+                                <a href="adminpanel_dashboard.html">Admin panel
+                                </a>
+                            </li>
+
+                        <li>
+                            <a href="signin.html">Log out
+                            </a>
+                        </li>
+                    </ul>
+                </span>
+
+        </div>
+        <form class="flex none" id="navbar-search" action="#" method="GET">
+            <input type="text" name="filter" placeholder="What are you looking for?">
+            <input type="submit" value="search">
+        </form>
+    </nav>
+    <nav class="dashboard-nav">
+        <ul class="flex">
+            <li>
+
+                    <a class="active" href="adminpanel_dashboard.html">Dashboard
+                    </a>
+                    <a class="" href="adminpanel_users.html">Users
+                    </a>
+                    <a class="" href="adminpanel_matches.html">Matches
+                    </a>
+                    <a class="" href="adminpanel_teams.html">Teams
+                    </a>
+                    <a class="" href="adminpanel_stadiums.html">Stadiums
+                    </a>
+                    <a class="" href="adminpanel_competitions.html">Competitions
+                    </a>
+
+            </li>
+        </ul>
+    </nav>
+</header>
+
+        <main class="panel-container">
+        <div class="table-container flex">
+            <div class="header flex">
+                <span>Stadiums |
+                    <span>1 results
+                    </span>
+                </span>
+                <div class="hints flex">
+                </div>
+            </div>
+            <div class="table">
+                <div class="row header-row flex">
+                    <div class="column select-column">
+                    </div>
+                    <div class="column name-column">Name
+                    </div>
+                    <div class="column date-column">Sport
+                    </div>
+                    <div class="column price-column">Capacity
+                    </div>
+                    <div class="column status-column">Location
+                    </div>
+                    <div class="column buttons-column">
+                    </div>
+                </div>
+
+                    <div class="row data-row blue-row flex">
+                        <div class="column select-column">
+                            <i class="bi-check-sqaure-fill">
+                            </i>
+                        </div>
+                        <div class="column name-column">Camp Nou
+                        </div>
+                        <div class="column date-column">football
+                        </div>
+                        <div class="column price-column">99354
+                        </div>
+                        <div class="column status-column">Spain - Barcelona
+                        </div>
+                        <div class="column buttons-column flex">
+                            <a class="edit-btn" href="adminpanel_e_stadium.html" target="_blank">Edit
+                            </a>
+                            <a class="delete-btn delete-item-btn" href="#">Delete
+                            </a>
+                            <a class="copy-id-btn" href="#" data-id="stadium-1">ID
+                            </a>
+                        </div>
+                    </div>
+
+            </div>
+        </div>
+    </main>
+    <a class="float-add-btn" href="adminpanel_c_stadium.html">+
+    </a>
+
+
+
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="../Static/front/js/uiTools.js"></script>
+    <script src="../Static/front/js/ui.js"></script>
+    <script src="../Static/front/js/inputValidators.js"></script>
+  </body>
+</html>

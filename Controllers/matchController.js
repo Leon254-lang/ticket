@@ -306,7 +306,7 @@ exports.getMatch = catchAsync(async (req, res, next) => {
 
 exports.getMatchDetails = catchAsync(async (req, res, next) => {
   const match = await matchModel.findById(req.params.id);
-  res.render("adminpanel_E_match", {
+  res.render("adminpanel_e_match", {
     title: "Edit match",
     user: req.user,
     role: "admin",

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../Static/front/styles/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+    <title>Ticketify | Panel Account</title>
+  </head>
+  <body class="panel-body">
+    <header>
+    <nav class="nav primary-color flex">
+        <div class="logo">
+            <a href="index.html">
+                <h3 class="white">Ticketify
+                </h3>
+            </a>
+        </div>
+        <ul class="nav-ul flex">
+            <li>
+                <a class="white navbar-items" href="index.html">Home
+                </a>
+            </li>
+            <li class="navbar-li-sports">
+                <a class="white navbar-items" href="#">Sports
+                    <span class="bi-chevron-compact-down">
+                    </span>
+                </a>
+                <ul>
+                    <li>
+                        <a href="index.html?sport=football">Football
+                        </a>
+                    </li>
+                    <li>
+                        <a href="index.html?sport=basketball">Basketball
+                        </a>
+                    </li>
+                    <li>
+                        <a href="index.html?sport=volleyball">Volleyball
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="navbar-li-search">
+                <span class="white navbar-items">Search
+                </span>
+            </li>
+        </ul>
+        <div class="user-action flex">
+
+                <span class="acoount-btn-nav active-user-action-btn">Account
+                    <span class="bi-chevron-compact-down">
+                    </span>
+                    <ul class="none">
+                        <li>
+                            <a href="panel_dashboard.html">Panel
+                            </a>
+                        </li>
+
+                            <li>
+                                <a href="adminpanel_dashboard.html">Admin panel
+                                </a>
+                            </li>
+
+                        <li>
+                            <a href="signin.html">Log out
+                            </a>
+                        </li>
+                    </ul>
+                </span>
+
+        </div>
+        <form class="flex none" id="navbar-search" action="#" method="GET">
+            <input type="text" name="filter" placeholder="What are you looking for?">
+            <input type="submit" value="search">
+        </form>
+    </nav>
+    <nav class="dashboard-nav">
+        <ul class="flex">
+            <li>
+
+                    <a class="active" href="adminpanel_dashboard.html">Dashboard
+                    </a>
+                    <a class="" href="adminpanel_users.html">Users
+                    </a>
+                    <a class="" href="adminpanel_matches.html">Matches
+                    </a>
+                    <a class="" href="adminpanel_teams.html">Teams
+                    </a>
+                    <a class="" href="adminpanel_stadiums.html">Stadiums
+                    </a>
+                    <a class="" href="adminpanel_competitions.html">Competitions
+                    </a>
+
+            </li>
+        </ul>
+    </nav>
+</header>
+
+        <main class="panel-container">
+        <form class="flex" action="#" method="POST" name="personal-information" id="personal-information">
+            <span>Personal Information
+            </span>
+            <div class="personal-information-container">
+                <input type="text" name="firstname" placeholder="First name" value="Alex">
+                <input type="text" name="lastname" placeholder="Last name" value="Morgan">
+            </div>
+            <select class="gender" name="gender">
+
+                    <option value="none" selected>None
+                    </option>
+                    <option value="male">Male
+                    </option>
+                    <option value="female">Female
+                    </option>
+
+            </select>
+            <div>
+                <input type="text" name="idNumber" placeholder="ID number" value="ID-12345">
+                <input type="text" name="passportNumber" placeholder="Passport number" value="P-12345">
+            </div>
+            <div>
+
+
+
+                    <input type="date" name="birthdate" value="1990-00-15">
+
+            </div>
+            <div class="location">
+                <select name="country">
+
+                        <option value="Spain" selected>Spain
+                        </option>
+
+                </select>
+                <select name="Province">
+
+                        <option value="Catalonia" selected>Catalonia
+                        </option>
+
+                </select>
+                <select name="City">
+
+                        <option value="Barcelona" selected>Barcelona
+                        </option>
+
+                </select>
+            </div>
+            <input type="submit" value="Save changes">
+        </form>
+        <form class="flex" action="#" method="POST" id="contact-information">
+            <span>Contact Information
+            </span>
+            <div>
+                <input type="email" name="email" value="alex@example.com">
+                <span class="verify-label verified">Verified
+
+                        <span class="bi-check-circle-fill verify-icon">
+                        </span>
+
+
+                    <br>
+                </span>
+            </div>
+
+            <input type="submit" value="Change email">
+        </form>
+
+        <form class="flex" action="#" method="POST" name="change-password" id="change-password">
+            <span>Password
+            </span>
+            <input type="password" name="oldPassword" placeholder="Old password">
+            <input type="password" name="newPassword" placeholder="New password">
+            <input type="password" name="confirmNewPassword" placeholder="Confirm new password">
+            <input type="submit" value="Change password">
+        </form>
+    </main>
+
+
+
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="../Static/front/js/uiTools.js"></script>
+    <script src="../Static/front/js/ui.js"></script>
+    <script src="../Static/front/js/inputValidators.js"></script>
+  </body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../Static/front/styles/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+    <title>Ticketify | Panel Dashboard</title>
+  </head>
+  <body class="panel-body">
+    <header>
+    <nav class="nav primary-color flex">
+        <div class="logo">
+            <a href="index.html">
+                <h3 class="white">Ticketify
+                </h3>
+            </a>
+        </div>
+        <ul class="nav-ul flex">
+            <li>
+                <a class="white navbar-items" href="index.html">Home
+                </a>
+            </li>
+            <li class="navbar-li-sports">
+                <a class="white navbar-items" href="#">Sports
+                    <span class="bi-chevron-compact-down">
+                    </span>
+                </a>
+                <ul>
+                    <li>
+                        <a href="index.html?sport=football">Football
+                        </a>
+                    </li>
+                    <li>
+                        <a href="index.html?sport=basketball">Basketball
+                        </a>
+                    </li>
+                    <li>
+                        <a href="index.html?sport=volleyball">Volleyball
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="navbar-li-search">
+                <span class="white navbar-items">Search
+                </span>
+            </li>
+        </ul>
+        <div class="user-action flex">
+
+                <span class="acoount-btn-nav active-user-action-btn">Account
+                    <span class="bi-chevron-compact-down">
+                    </span>
+                    <ul class="none">
+                        <li>
+                            <a href="panel_dashboard.html">Panel
+                            </a>
+                        </li>
+
+                            <li>
+                                <a href="adminpanel_dashboard.html">Admin panel
+                                </a>
+                            </li>
+
+                        <li>
+                            <a href="signin.html">Log out
+                            </a>
+                        </li>
+                    </ul>
+                </span>
+
+        </div>
+        <form class="flex none" id="navbar-search" action="#" method="GET">
+            <input type="text" name="filter" placeholder="What are you looking for?">
+            <input type="submit" value="search">
+        </form>
+    </nav>
+    <nav class="dashboard-nav">
+        <ul class="flex">
+            <li>
+
+                    <a class="active" href="adminpanel_dashboard.html">Dashboard
+                    </a>
+                    <a class="" href="adminpanel_users.html">Users
+                    </a>
+                    <a class="" href="adminpanel_matches.html">Matches
+                    </a>
+                    <a class="" href="adminpanel_teams.html">Teams
+                    </a>
+                    <a class="" href="adminpanel_stadiums.html">Stadiums
+                    </a>
+                    <a class="" href="adminpanel_competitions.html">Competitions
+                    </a>
+
+            </li>
+        </ul>
+    </nav>
+</header>
+
+        <section class="container flex">
+        <main class="flex">
+            <div class="detail-box flex">
+                <span class="title">Account status
+                </span>
+
+                    <span class="value verified">Verified
+                    </span>
+
+            </div>
+            <div class="detail-box flex">
+                <span class="title">Money Spent
+                </span>
+                <span class="value">45 $
+                </span>
+                <span class="view-more">
+                </span>
+            </div>
+            <div class="detail-box flex">
+                <span class="title">Tickets Bought
+                </span>
+                <span class="value">1
+                </span>
+                <a class="view-more" href="panel_tickets.html">View all
+                    <span class="bi-arrow-right">
+                    </span>
+                </a>
+            </div>
+        </main>
+
+            <aside>
+                <div class="dashboard-match-box-details">
+                    <span class="title">Upcoming match
+                    </span>
+                    <div class="match-info flex">
+                        <img src="../Static/images/teams/1627585464740-logo-FC-Barcelona.png" alt="FC Barcelona logo image">
+                        <div class="flex names">
+                            <span>FC Barcelona - Atletico Madrid
+                            </span>
+                            <span>Barcelona-Atletico
+                            </span>
+                        </div>
+                        <img src="../Static/images/teams/1627585490077-logo-Ateltico-de Madrid.png" alt="Atletico Madrid logo image">
+                    </div>
+                    <div class="match-details">
+                        <div class="flex">
+
+                            <span class="bi-calendar-fill flex">2026 - 10 - 1
+                            </span>
+
+                            <span class="bi-clock-fill flex">02:10
+                            </span>
+                        </div>
+                        <div class="flex">
+                            <span class="bi-house-door-fill flex">Camp Nou
+                            </span>
+                            <span class="bi-geo-alt-fill flex">Spain Barcelona
+                            </span>
+                        </div>
+                    </div>
+                    <div class="count-down dashboard-countdown" data-date="Sun Nov 01 2026 02:10:44 GMT+0300 (East Africa Time)">
+                        <span id="days">
+                        </span>
+
+                        Days :
+                        <span id="hours">
+                        </span>
+
+                        Hours :
+                        <span id="minutes">
+                        </span>
+
+                        Minutes :
+                        <span id="seconds">
+                        </span>
+                        Seconds
+                    </div>
+                    <img class="match-cover" src="../Static/images/matches/1627730136190-match-cover-6102fb-6102fb.jpeg" alt="FC Barcelona VS Atletico Madrid match cover image">
+                    <a class="view-all-btn" href="panel_tickets.html">View all matches
+
+                        <span class="bi-arrow-right">
+                        </span>
+                    </a>
+                </div>
+            </aside>
+
+    </section>
+
+
+
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="../Static/front/js/uiTools.js"></script>
+    <script src="../Static/front/js/ui.js"></script>
+    <script src="../Static/front/js/inputValidators.js"></script>
+  </body>
+</html>

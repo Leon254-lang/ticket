@@ -59,6 +59,27 @@ const sendErrorProduction = (err, req, res) => {
 module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
+  if (req.originalUrl.startsWith("/api/")) {
+    let error = err;
+    if (err.name === "CastError") error = handleCastErrorDB(err);
+    if (err.code === 11000) error = handleDuplicateFieldsDB(err);
+    if (err.name === "ValidationError") error = handleValidationErrorDB(err);
+    if (
+      err.name === "JsonWebTokenError" ||
+      err.name === "TokenExpiredError"
+    ) {
+      error = new AppError("Please sign in to continue", 401);
+      res.clearCookie("jwt");
+    }
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
+      status: error.status || "error",
+      message:
+        error.isOperational || process.env.NODE_ENV === "development"
+          ? error.message
+          : "Something went wrong",
+    });
+  }
   //send errors in development environment
   if (process.env.NODE_ENV === "development") sendErrorDev(err, req, res);
   else if (process.env.NODE_ENV === "production") {
