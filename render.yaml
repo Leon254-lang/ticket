@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ticketify
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_CONNECTION_STRING
+        sync: false
+      - key: JWT_SECRET_CODE
+        sync: false

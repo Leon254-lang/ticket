@@ -48,6 +48,12 @@ Ticketify is a match-ticketing app with a React frontend, an Express API, and Mo
 
    Deployments should provide `DATABASE_CONNECTION_STRING` and `JWT_SECRET_CODE` as environment variables. `heroku-postbuild` builds the React app during a Heroku deployment.
 
+## Render deployment
+
+The included `render.yaml` configures the Render build command as `npm install && npm run build` and the start command as `npm start`. If configuring the service in the Render dashboard instead, use those same commands; do not start `app.js` directly because `server.js` connects to MongoDB and starts the HTTP listener.
+
+Set `DATABASE_CONNECTION_STRING` to the Atlas connection URI and `JWT_SECRET_CODE` to a long random secret in the Render environment settings. Do not commit `.env` or paste database credentials into the build or start command.
+
 ## Create or reset an admin account
 
 Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` only in the current terminal session, then run `npm run seed:admin`. The command creates the account if it does not exist, or promotes and resets the matching account if it does. It stores only the bcrypt password hash in MongoDB; do not commit credentials or add them to seed data.
