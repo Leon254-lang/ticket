@@ -16,8 +16,8 @@
 }
 
 * { box-sizing: border-box; }
-html { min-width: 320px; scroll-behavior: smooth; }
-body { margin: 0; min-width: 320px; background: #f7f8fb; color: var(--ink); }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: #f7f8fb; color: var(--ink); }
 button, input, select, textarea { font: inherit; }
 button, a, select { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
@@ -296,11 +296,14 @@ tbody tr:last-child td { border-bottom: 0; }
   .catalog-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
-  .site-header { height: auto; min-height: 70px; flex-wrap: wrap; gap: 0 20px; padding: 13px 18px; }
+  .site-header { height: auto; min-height: 70px; flex-wrap: wrap; gap: 0 14px; padding: max(12px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 12px max(20px, env(safe-area-inset-left)); }
   .brand { font-size: 17px; }
-  .main-nav { order: 3; width: 100%; padding-top: 10px; }
-  .header-search { max-width: none; height: 36px; order: 4; flex-basis: 100%; margin-top: 12px; }
-  .header-actions { gap: 11px; }
+  .main-nav { order: 3; width: 100%; gap: 24px; padding-top: 10px; overflow-x: auto; scrollbar-width: none; }
+  .main-nav::-webkit-scrollbar { display: none; }
+  .sports-menu { flex: 0 0 auto; }
+  .header-search { max-width: none; height: 42px; order: 4; flex-basis: 100%; margin-top: 10px; }
+  .header-actions { gap: 12px; }
+  .header-actions .button { min-height: 42px; }
   .hero-section { min-height: initial; grid-template-columns: 1fr; gap: 18px; padding: 54px 25px 30px; }
   .hero-copy { max-width: 600px; }
   .hero-copy h1 { font-size: clamp(43px, 10vw, 62px); }
@@ -318,9 +321,9 @@ tbody tr:last-child td { border-bottom: 0; }
   .closing-banner { align-items: flex-start; flex-direction: column; padding: 33px 25px; }
   .site-footer { flex-wrap: wrap; padding: 20px 22px; }
   .site-footer > span { order: 3; flex-basis: 100%; }
-  .page-main { width: min(100% - 30px, 1120px); padding-top: 25px; }
+  .page-main { width: min(100% - 36px, 1120px); padding-top: 25px; }
   .match-detail { grid-template-columns: 1fr; gap: 22px; padding: 24px; }
-  .match-detail-cover { min-height: 190px; max-height: 280px; }
+  .match-detail-cover { min-height: 190px; max-height: 280px; aspect-ratio: 16 / 9; }
   .booking-panel { grid-template-columns: 1fr; padding: 23px; }
   .booking-gate { align-items: flex-start; flex-direction: column; }
   .auth-page { grid-template-columns: 1fr; }
@@ -328,11 +331,11 @@ tbody tr:last-child td { border-bottom: 0; }
   .auth-aside h1 { max-width: 520px; font-size: 38px; }
   .auth-aside-mark { margin-top: 10px; }
   .auth-card { margin: 30px auto; }
-  .panel-layout { grid-template-columns: 1fr; padding: 20px 16px 45px; }
+  .panel-layout { width: 100%; grid-template-columns: minmax(0, 1fr); gap: 17px; padding: 20px 18px 45px; }
   .panel-sidebar { padding: 11px; }
   .panel-user { display: none; }
   .panel-sidebar nav { display: flex; overflow-x: auto; padding: 2px 0; }
-  .panel-sidebar nav a { flex: 0 0 auto; padding: 0 11px; }
+  .panel-sidebar nav a { min-height: 42px; flex: 0 0 auto; padding: 0 12px; white-space: nowrap; }
   .panel-sidebar nav a > i:first-child, .nav-chevron, .back-to-site { display: none; }
   .panel-heading h1 { font-size: 25px; }
   .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -342,32 +345,78 @@ tbody tr:last-child td { border-bottom: 0; }
   .catalog-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 480px) {
-  .header-actions .text-link { display: none; }
-  .header-actions { margin-left: auto; }
-  .hero-section { padding-top: 42px; }
+  .site-header { gap: 0 10px; padding-right: max(16px, env(safe-area-inset-right)); padding-left: max(16px, env(safe-area-inset-left)); }
+  .header-actions { gap: 8px; margin-left: auto; }
+  .header-actions .text-link { display: inline-flex; align-items: center; min-height: 42px; }
+  .header-actions .button { padding: 0 11px; font-size: 10px; }
+  .hero-section { gap: 12px; padding: 42px 20px 26px; }
   .hero-copy h1 { letter-spacing: -2.4px; }
   .hero-art { min-height: 260px; }
-  .hero-art-card { min-height: 220px; padding: 20px 17px 16px; }
+  .hero-art-card { min-height: 220px; padding: 20px 15px 16px; }
   .hero-score { margin-top: 32px; }
-  .hero-score > div { font-size: 8px; }
+  .hero-score > div { max-width: 38%; font-size: 9px; text-align: center; }
   .team-crest { width: 42px; height: 42px; }
-  .floating-ticket { right: -2px; bottom: 14px; padding: 10px 11px; font-size: 8px; }
+  .floating-ticket { right: 0; bottom: 12px; padding: 10px 11px; font-size: 9px; }
   .match-grid { grid-template-columns: 1fr; }
   .match-card-image { height: 190px; }
-  .section-heading { align-items: flex-start; flex-direction: column; }
+  .content-section { padding: 48px 18px 58px; }
+  .section-heading { align-items: stretch; flex-direction: column; gap: 15px; }
+  .section-heading h2 { font-size: 27px; }
   .filter-select, .filter-select select { width: 100%; }
-  .match-facts > div { grid-template-columns: 20px 63px 1fr; }
-  .match-detail-copy h1 { font-size: 34px; }
-  .auth-card { padding: 26px 21px; }
+  .match-detail { gap: 19px; padding: 20px 17px; }
+  .match-facts > div { grid-template-columns: 20px 72px minmax(0, 1fr); align-items: start; gap: 8px; }
+  .match-facts strong { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+  .match-detail-copy h1 { font-size: clamp(30px, 8vw, 36px); letter-spacing: -1.5px; }
+  .auth-aside { min-height: 230px; padding: 34px 22px; }
+  .auth-aside h1 { font-size: clamp(32px, 9vw, 38px); letter-spacing: -1.8px; }
+  .auth-aside-mark { margin-top: 18px; }
+  .auth-card { width: calc(100% - 32px); margin: 18px auto 28px; padding: 26px 21px; }
+  .narrow-page { width: calc(100% - 32px); padding: 34px 0; }
+  .contact-card { padding: 26px 21px; }
+  .contact-card h1 { font-size: 30px; }
   .form-row { grid-template-columns: 1fr; }
+  .panel-layout { gap: 15px; padding: 16px 14px 36px; }
+  .panel-sidebar { padding: 8px; }
+  .panel-sidebar nav { gap: 3px; margin: 0 -3px; }
+  .panel-sidebar nav a { min-height: 44px; padding: 0 11px; font-size: 11px; }
+  .panel-heading { margin-bottom: 16px; }
+  .panel-heading h1 { font-size: 24px; line-height: 1.2; overflow-wrap: anywhere; }
   .stats-grid { gap: 9px; }
-  .stat-card { min-height: 108px; padding: 14px; }
-  .stat-card > strong { font-size: 23px; }
-  .surface-card { padding: 18px; }
+  .stat-card { min-height: 112px; padding: 13px; }
+  .stat-icon { top: 12px; right: 12px; }
+  .stat-label { max-width: calc(100% - 34px); font-size: 10px; line-height: 1.35; }
+  .stat-card > strong { font-size: 23px; overflow-wrap: anywhere; }
+  .surface-card { padding: 17px; }
+  .form-stack { gap: 15px; }
+  .field { font-size: 12px; }
+  .field input, .field select, .field textarea { min-height: 48px; padding: 11px 12px; font-size: 16px; }
+  .field textarea { font-size: 14px; }
+  .button { min-height: 48px; padding-right: 16px; padding-left: 16px; font-size: 13px; }
+  .button-small { min-height: 42px; font-size: 11px; }
+  .notice { font-size: 12px; overflow-wrap: anywhere; }
+  .empty-state p { font-size: 12px; }
+  .ticket-card { gap: 12px; padding: 14px; }
+  .ticket-card-detail strong { font-size: 11px; overflow-wrap: anywhere; }
   .catalog-card { grid-template-columns: 84px minmax(0, 1fr); }
   .catalog-card > img, .catalog-image-placeholder { width: 84px; min-height: 150px; }
   .catalog-card-body { padding: 12px; }
-  .list-toolbar { align-items: flex-start; flex-direction: column; }
-  .ticket-team-row { flex-wrap: wrap; gap: 6px; }
-  .site-footer > div { gap: 13px; font-size: 9px; }
+  .catalog-card-body p { font-size: 11px; }
+  .list-toolbar { align-items: stretch; flex-direction: column; gap: 12px; }
+  .list-toolbar .button { width: 100%; }
+  .ticket-team-row { flex-wrap: wrap; gap: 6px; font-size: 12px; }
+  .site-footer { align-items: flex-start; gap: 13px; padding: 20px max(18px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); }
+  .site-footer > div { flex-wrap: wrap; gap: 10px 16px; font-size: 10px; }
+  .site-footer > span { font-size: 11px; }
+}
+@media (max-width: 360px) {
+  .site-header { padding-right: max(12px, env(safe-area-inset-right)); padding-left: max(12px, env(safe-area-inset-left)); }
+  .brand { gap: 7px; font-size: 15px; }
+  .brand-mark { width: 27px; height: 27px; }
+  .header-actions { gap: 5px; }
+  .header-actions .button { padding: 0 8px; font-size: 9px; }
+  .hero-section { padding-right: 16px; padding-left: 16px; }
+  .hero-copy h1 { font-size: 40px; }
+  .floating-ticket { right: -5px; }
+  .panel-layout { padding-right: 10px; padding-left: 10px; }
+  .stat-card { padding: 11px; }
 }
