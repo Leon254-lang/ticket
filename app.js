@@ -63,3 +63,7 @@ app.all("*", (req, res, next) => next(new AppError("Route not found", 404)));
 
 app.use(globalErrorHandler);
 module.exports = app;
+
+if (require.main === module) {
+  require("./server");
+}

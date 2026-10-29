@@ -50,7 +50,7 @@ Ticketify is a match-ticketing app with a React frontend, an Express API, and Mo
 
 ## Render deployment
 
-The included `render.yaml` configures the Render build command as `npm install && npm run build` and the start command as `npm start`. If configuring the service in the Render dashboard instead, use those same commands; do not start `app.js` directly because `server.js` connects to MongoDB and starts the HTTP listener.
+The included `render.yaml` configures the Render build command as `npm install && npm run build` and the start command as `npm start`. If configuring the service in the Render dashboard instead, use those same commands. For compatibility with existing services configured to run `node app.js`, that entry point now delegates to the server bootstrap.
 
 Set `DATABASE_CONNECTION_STRING` to the Atlas connection URI and `JWT_SECRET_CODE` to a long random secret in the Render environment settings. Do not commit `.env` or paste database credentials into the build or start command.
 
