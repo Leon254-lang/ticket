@@ -29,12 +29,18 @@ const startApp = async () => {
 };
 
 startApp().catch((error) => {
-  if (error.name === "MongooseServerSelectionError") {
+  const uri = process.env.DATABASE_CONNECTION_STRING || "";
+  let details = String(error.message || "No additional error details.");
+  if (uri) details = details.replaceAll(uri, "[MongoDB URI redacted]");
+  details = details
+    .replace(/mongodb(?:\+srv)?:\/\/[^\s"'<>]+/gi, "[MongoDB URI redacted]")
+    .replace(/\b(password|passwd|pwd)\s*[:=]\s*[^,\s;&]+/gi, "$1=[redacted]");
+  const errorName = error.name || "unknown error";
+  console.error(`Ticketify failed to start (${errorName}): ${details}`);
+  if (errorName === "MongooseServerSelectionError") {
     console.error(
-      "MongoDB is unreachable. Start the MongoDB service or check that DATABASE_CONNECTION_STRING points to a reachable database."
+      "Check the Atlas driver URI, database username/password, and Atlas Network Access IP access list."
     );
-  } else {
-    console.error(`Ticketify failed to start (${error.name || "unknown error"}).`);
   }
   process.exitCode = 1;
 });
