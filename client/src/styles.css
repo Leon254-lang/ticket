@@ -183,6 +183,16 @@ h1, h2, h3, .brand { font-family: "Manrope", sans-serif; }
 .contact-card { padding: 48px; }
 .contact-card h1 { margin: 13px 0; font-size: 36px; letter-spacing: -1.6px; }
 .contact-card p { max-width: 500px; margin-bottom: 24px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+.contact-form { margin-top: 25px; }
+.message-list { display: grid; gap: 16px; }
+.message-card { padding: 24px; }
+.message-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.message-card-heading h2 { margin: 7px 0 0; font-size: 20px; }
+.message-status-field { width: min(190px, 40%); }
+.message-body { margin: 22px 0; color: #4f5a72; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.message-sender { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12px; }
+.message-sender strong { text-transform: capitalize; }
+.message-sender a { overflow-wrap: anywhere; }
 
 .panel-layout { width: min(1390px, 100%); min-height: calc(100vh - 164px); margin: 0 auto; padding: 35px clamp(18px, 4vw, 56px) 65px; display: grid; grid-template-columns: 235px minmax(0, 1fr); gap: 30px; }
 .panel-sidebar { align-self: start; padding: 16px; border: 1px solid #e9ecf1; border-radius: 15px; background: #fff; }
@@ -296,6 +306,8 @@ tbody tr:last-child td { border-bottom: 0; }
   .match-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .panel-layout { grid-template-columns: 200px minmax(0, 1fr); gap: 20px; }
   .catalog-grid { grid-template-columns: 1fr; }
+  .message-card-heading { flex-direction: column; }
+  .message-status-field { width: 100%; }
 }
 @media (max-width: 760px) {
   .site-header { height: auto; min-height: 70px; flex-wrap: wrap; gap: 0 14px; padding: max(12px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 12px max(20px, env(safe-area-inset-left)); }

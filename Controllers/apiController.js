@@ -7,6 +7,7 @@ const teamModel = require("../Models/teamModel");
 const stadiumModel = require("../Models/stadiumModel");
 const competitionModel = require("../Models/competitionModel");
 const ticketModel = require("../Models/ticketModel");
+const contactMessageModel = require("../Models/contactMessageModel");
 const EmailSender = require("../utilities/email");
 const { catchAsync, AppError } = require("../utilities/errorHandler");
 
@@ -319,6 +320,32 @@ exports.getUsers = catchAsync(async (req, res) => {
   respondWithPage(res, items.map(publicUser), total, page, limit);
 });
 
+exports.getAdminUser = catchAsync(async (req, res) => {
+  const user = await userModel.findById(req.params.id)
+    .select("-password -passwordChangedAt -passwordResetToken -passwordResetExpires");
+  if (!user) throw new AppError("User not found", 404);
+  res.json({ data: publicUser(user) });
+});
+
+exports.updateAdminUser = catchAsync(async (req, res) => {
+  const allowed = ["firstname", "lastname", "idNumber", "passportNumber", "gender", "birthdate", "country", "province", "city", "role"];
+  const updates = {};
+  allowed.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+      updates[key] = req.body[key] === "" ? undefined : req.body[key];
+    }
+  });
+  if (String(req.user._id) === req.params.id && updates.role && updates.role !== req.user.role) {
+    throw new AppError("You cannot change your own administrator role", 400);
+  }
+  const user = await userModel.findByIdAndUpdate(req.params.id, updates, {
+    new: true,
+    runValidators: true,
+  }).select("-password");
+  if (!user) throw new AppError("User not found", 404);
+  res.json({ data: publicUser(user) });
+});
+
 exports.getTickets = catchAsync(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query);
   const [items, total] = await Promise.all([
@@ -328,6 +355,45 @@ exports.getTickets = catchAsync(async (req, res) => {
     ticketModel.countDocuments(),
   ]);
   respondWithPage(res, items, total, page, limit);
+});
+
+exports.submitContactMessage = catchAsync(async (req, res) => {
+  const { name, email, subject, message } = req.body;
+  const item = await contactMessageModel.create({ name, email, subject, message });
+  res.status(201).json({
+    data: { id: item._id, submittedAt: item.submittedAt },
+    message: "Thanks for getting in touch. Your message has been received.",
+  });
+});
+
+exports.getContactMessages = catchAsync(async (req, res) => {
+  const { page, limit, skip } = parsePagination(req.query);
+  const filter = {};
+  if (req.query.status) {
+    if (!["new", "read", "resolved"].includes(req.query.status)) {
+      throw new AppError("Invalid message status", 400);
+    }
+    filter.status = req.query.status;
+  }
+  const [items, total] = await Promise.all([
+    contactMessageModel.find(filter).sort({ submittedAt: -1 }).skip(skip).limit(limit),
+    contactMessageModel.countDocuments(filter),
+  ]);
+  respondWithPage(res, items, total, page, limit);
+});
+
+exports.updateContactMessage = catchAsync(async (req, res) => {
+  const { status } = req.body;
+  if (!["new", "read", "resolved"].includes(status)) {
+    throw new AppError("Choose a valid message status", 400);
+  }
+  const item = await contactMessageModel.findByIdAndUpdate(
+    req.params.id,
+    { status },
+    { new: true, runValidators: true }
+  );
+  if (!item) throw new AppError("Message not found", 404);
+  res.json({ data: item });
 });
 
 exports.getAdminDashboard = catchAsync(async (req, res) => {

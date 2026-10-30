@@ -75,7 +75,7 @@ Remove-Item Env:ADMIN_EMAIL, Env:ADMIN_PASSWORD
 
 - Public: `/`, `/matches/:id`, `/signin`, `/signup`, `/user/resetpassword`
 - User account: `/panel/dashboard`, `/panel/tickets`, `/panel/account`, `/panel/contactus`
-- Admin: `/adminpanel/dashboard`, `/adminpanel/users`, `/adminpanel/matches`, `/adminpanel/teams`, `/adminpanel/stadiums`, `/adminpanel/competitions`, `/adminpanel/tickets`
+- Admin: `/adminpanel/dashboard`, `/adminpanel/users`, `/adminpanel/matches`, `/adminpanel/teams`, `/adminpanel/stadiums`, `/adminpanel/competitions`, `/adminpanel/tickets`, `/adminpanel/messages`
 
 The client also redirects the previous `.html` page URLs to the corresponding React routes where possible.
 
@@ -94,9 +94,12 @@ All new API routes are under `/api` and return JSON. Authentication uses the exi
 | `POST` | `/api/tickets` | Signed-in |
 | `GET` | `/api/users/me/tickets`, `/api/dashboard/me` | Signed-in |
 | `GET` | `/api/admin/dashboard`, `/api/admin/users`, `/api/admin/tickets`, `/api/admin/matches` | Admin |
+| `POST` | `/api/contact` | Public |
+| `GET`, `PATCH` | `/api/admin/messages[/:id]` | Admin |
+| `GET`, `PATCH` | `/api/admin/users[/:id]` | Admin |
 | `POST`, `PATCH`, `DELETE` | `/api/:resource[/:id]` | Admin |
 
-Supported admin resources are `matches`, `teams`, `stadiums`, and `competitions`. Successful collection requests return a `data` array and pagination information; errors return a JSON `message`.
+Supported catalog resources are `matches`, `teams`, `stadiums`, and `competitions`. Contact submissions are stored in MongoDB and managed from the admin message center; account profile and role changes are available in admin user details. Successful collection requests return a `data` array and pagination information; errors return a JSON `message`.
 
 Admins can upload team logos and backgrounds, stadium images, competition logos, and match cover images from the resource forms. Images are stored in MongoDB Atlas GridFS (not Render's temporary filesystem); supported formats are PNG, JPEG, WebP, and GIF, up to 5 MB per image.
 

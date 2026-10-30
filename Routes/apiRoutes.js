@@ -29,11 +29,16 @@ router.patch("/users/me", api.protect, api.updateProfile);
 router.get("/users/me/tickets", api.protect, api.getMyTickets);
 router.get("/dashboard/me", api.protect, api.getUserDashboard);
 router.post("/tickets", api.protect, api.purchaseTicket);
+router.post("/contact", api.submitContactMessage);
 
 router.get("/admin/dashboard", ...admin, api.getAdminDashboard);
 router.post("/admin/uploads", ...admin, uploads.receiveImage, uploads.uploadImage);
 router.get("/admin/users", ...admin, api.getUsers);
+router.get("/admin/users/:id", ...admin, api.getAdminUser);
+router.patch("/admin/users/:id", ...admin, api.updateAdminUser);
 router.get("/admin/tickets", ...admin, api.getTickets);
+router.get("/admin/messages", ...admin, api.getContactMessages);
+router.patch("/admin/messages/:id", ...admin, api.updateContactMessage);
 router.get("/admin/matches", ...admin, (req, res, next) => {
   req.query.admin = true;
   api.getMatches(req, res, next);

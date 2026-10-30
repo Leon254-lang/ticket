@@ -114,10 +114,10 @@ function App() {
           <Route element={<RequireUser admin />}>
             <Route path="/adminpanel" element={<Navigate to="/adminpanel/dashboard" replace />} />
             <Route path="/adminpanel/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/adminpanel/messages" element={<MessagesPage />} />
             <Route path="/adminpanel/:resource" element={<AdminResourcePage />} />
             <Route path="/adminpanel/:resource/new" element={<AdminResourcePage />} />
             <Route path="/adminpanel/:resource/:id/edit" element={<AdminResourcePage />} />
-            <Route path="/adminpanel/messages" element={<MessagesPage />} />
           </Route>
           <Route path="/contact" element={<ContactPage />} />
           <Route path="*" element={<LegacyRedirect />} />
@@ -626,12 +626,58 @@ async function refreshUserData(setUser) {
 }
 
 function ContactPage() {
+  const { user } = useAuth();
+  const [form, setForm] = useState({
+    name: user ? `${user.firstname || ""} ${user.lastname || ""}`.trim() : "",
+    email: user?.email || "",
+    subject: "",
+    message: "",
+  });
+  const [busy, setBusy] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    setForm((current) => ({
+      ...current,
+      name: current.name || `${user.firstname || ""} ${user.lastname || ""}`.trim(),
+      email: current.email || user.email || "",
+    }));
+  }, [user]);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    setSuccess("");
+    setError("");
+    try {
+      const result = await api("/contact", { method: "POST", body: form });
+      setSuccess(result.message);
+      setForm((current) => ({ ...current, subject: "", message: "" }));
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <main className="narrow-page">
       <section className="surface-card contact-card">
         <span className="eyebrow">WE’RE HERE TO HELP</span><h1>Talk to the Ticketify team.</h1>
         <p>Questions about your account or an upcoming match? Send us a message and include your booking details if you have them.</p>
-        <div className="notice notice-info">Contact messaging is not configured yet. Add your support email or connect a message service to receive customer requests.</div>
+        <form className="form-stack contact-form" onSubmit={submit}>
+          <div className="form-row">
+            <Field label="Your name" value={form.name} onChange={(value) => setForm({ ...form, name: value })} required autoComplete="name" />
+            <Field label="Email address" type="email" value={form.email} onChange={(value) => setForm({ ...form, email: value })} required autoComplete="email" />
+          </div>
+          <Field label="Subject" value={form.subject} onChange={(value) => setForm({ ...form, subject: value })} required maxLength={120} />
+          <Field label="How can we help?" value={form.message} onChange={(value) => setForm({ ...form, message: value })} required multiline maxLength={5000} />
+          {error && <div className="notice notice-error">{error}</div>}
+          {success && <div className="notice notice-success">{success}</div>}
+          <button className="button" disabled={busy}>{busy ? "Sending…" : "Send message"} <i className="bi bi-arrow-right" /></button>
+        </form>
       </section>
     </main>
   );
@@ -659,6 +705,23 @@ function AdminDashboardPage() {
 }
 
 const resourceConfig = {
+  users: {
+    title: "Users",
+    endpoint: "/admin/users",
+    fields: [
+      { name: "firstname", label: "First name", required: true },
+      { name: "lastname", label: "Last name", required: true },
+      { name: "email", label: "Email address", readOnly: true },
+      { name: "role", label: "Role", type: "select", options: [["user", "User"], ["admin", "Administrator"], ["stadiumAdmin", "Stadium administrator"], ["matchAdmin", "Match administrator"]] },
+      { name: "gender", label: "Gender", type: "select", options: [["", "Prefer not to say"], ["female", "Female"], ["male", "Male"], ["other", "Other"]] },
+      { name: "idNumber", label: "ID number" },
+      { name: "passportNumber", label: "Passport number" },
+      { name: "birthdate", label: "Birth date", type: "date" },
+      { name: "country", label: "Country" },
+      { name: "province", label: "Province / state" },
+      { name: "city", label: "City" },
+    ],
+  },
   teams: {
     title: "Teams",
     endpoint: "/teams",
@@ -717,7 +780,9 @@ function AdminResourcePage() {
   const config = resourceConfig[resource];
   const isNew = location.pathname.endsWith("/new");
   const isEdit = Boolean(id);
-  const endpoint = resource === "users" ? "/admin/users" : resource === "tickets" ? "/admin/tickets" : resource === "messages" ? "/admin/dashboard" : config?.endpoint;
+  const endpoint = resource === "users"
+    ? isEdit ? `/admin/users/${id}` : "/admin/users"
+    : resource === "tickets" ? "/admin/tickets" : config?.endpoint;
   const { loading, data, error, reload } = useRequest(
     endpoint ? `${endpoint}?limit=100` : "/admin/users",
     [endpoint, resource, id]
@@ -749,14 +814,16 @@ function AdminResourcePage() {
       return;
     }
     if (!isEdit || !data) return;
-    const item = data.find((entry) => entry._id === id);
+    const item = resource === "users" ? data : data.find((entry) => entry._id === id);
     if (item) setForm(toFormValues(resource, item));
   }, [data, id, isEdit, isNew, resource]);
 
-  if (!config && resource !== "users" && resource !== "tickets" && resource !== "messages") {
+  if (!config && resource !== "tickets") {
     return <PanelShell sections={adminSections} title="Page not found" admin><EmptyState title="Unknown admin section" text="Choose a section from the navigation." /></PanelShell>;
   }
-  if (resource === "messages") return <MessagesPage />;
+  if (resource === "users" && isNew) return <Navigate to="/adminpanel/users" replace />;
+  if (isEdit && loading) return <PanelShell sections={adminSections} title="Edit user" admin><Loading /></PanelShell>;
+  if (isEdit && error) return <PanelShell sections={adminSections} title="Edit user" admin><ErrorMessage message={error} /></PanelShell>;
   const isListing = !isNew && !isEdit;
   const heading = isListing ? (config?.title || capitalize(resource)) : `${isNew ? "Add" : "Edit"} ${config.title.toLowerCase()}`;
 
@@ -782,10 +849,10 @@ function AdminResourcePage() {
         const result = await api("/admin/uploads", { method: "POST", body: upload });
         body[field.name] = result.data.url;
       }
-      const response = await api(isEdit ? `/${resource}/${id}` : `/${resource}`, {
-        method: isEdit ? "PATCH" : "POST",
-        body,
-      });
+      const response = await api(
+        resource === "users" ? `/admin/users/${id}` : isEdit ? `/${resource}/${id}` : `/${resource}`,
+        { method: isEdit ? "PATCH" : "POST", body }
+      );
       navigate(`/adminpanel/${resource}`);
       if (!response) reload();
     } catch (requestError) {
@@ -810,7 +877,7 @@ function AdminResourcePage() {
       {isListing ? (
         <>
           {error && <ErrorMessage message={error} />}
-          {resourceConfig[resource] && <div className="list-toolbar"><p>Manage your {resource} catalog.</p><Link className="button" to={`/adminpanel/${resource}/new`}><i className="bi bi-plus-lg" /> Add {resource.slice(0, -1)}</Link></div>}
+          {resourceConfig[resource] && resource !== "users" && <div className="list-toolbar"><p>Manage your {resource} catalog.</p><Link className="button" to={`/adminpanel/${resource}/new`}><i className="bi bi-plus-lg" /> Add {resource.slice(0, -1)}</Link></div>}
           {formError && <div className="notice notice-error">{formError}</div>}
           {loading ? <Loading /> : <AdminTable resource={resource} rows={Array.isArray(data) ? data : data?.data || []} onDelete={remove} />}
         </>
@@ -849,8 +916,8 @@ function AdminResourcePage() {
 function AdminTable({ resource, rows, onDelete }) {
   if (!rows.length) return <EmptyState title={`No ${resource} yet`} text="Add your first item to get started." />;
   if (resource === "users") return (
-    <div className="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Email status</th></tr></thead><tbody>
-      {rows.map((row) => <tr key={row._id}><td>{row.firstname} {row.lastname}</td><td>{row.email}</td><td><span className="status-pill">{row.role}</span></td><td>{formatDate(row.joindate)}</td><td>{row.verifiedEmail ? "Verified" : "Not verified"}</td></tr>)}
+    <div className="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Email status</th><th>Actions</th></tr></thead><tbody>
+      {rows.map((row) => <tr key={row._id}><td>{row.firstname} {row.lastname}</td><td>{row.email}</td><td><span className="status-pill">{row.role}</span></td><td>{formatDate(row.joindate)}</td><td>{row.verifiedEmail ? "Verified" : "Not verified"}</td><td><Link className="text-link" to={`/adminpanel/users/${row._id}/edit`}>Edit</Link></td></tr>)}
     </tbody></table></div>
   );
   if (resource === "tickets") return (
@@ -889,13 +956,14 @@ function AdminField({ field, value, onChange, related }) {
     return <SearchableEntityField field={field} value={value || ""} onChange={onChange} options={options} />;
   }
   if (field.type === "select") {
-    return <SelectField label={field.label} value={value || ""} onChange={onChange} required options={field.options.map((item) => [item, capitalize(item)])} />;
+    const options = field.options.map((item) => Array.isArray(item) ? item : [item, capitalize(item)]);
+    return <SelectField label={field.label} value={value || ""} onChange={onChange} required={field.required} options={options} />;
   }
   if (field.type === "image") {
     return <ImageUploadField field={field} value={value} onChange={onChange} />;
   }
   if (field.type === "checkbox") return <label className="checkbox-field"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /><span>{field.label}</span></label>;
-  return <Field label={field.label} type={field.type || "text"} value={value ?? ""} onChange={onChange} required={field.required} multiline={field.type === "textarea"} hint={field.name === "stands" ? 'Example: [{"id":"A1","location":"west","floor":"1","capacity":100,"price":25,"availablity":true}]' : ""} />;
+  return <Field label={field.label} type={field.type || "text"} value={value ?? ""} onChange={onChange} required={field.required} readOnly={field.readOnly} multiline={field.type === "textarea"} hint={field.name === "stands" ? 'Example: [{"id":"A1","location":"west","floor":"1","capacity":100,"price":25,"availablity":true}]' : ""} />;
 }
 
 function ImageUploadField({ field, value, onChange }) {
@@ -966,6 +1034,10 @@ function SearchableEntityField({ field, value, onChange, options }) {
 
 function toFormValues(resource, item) {
   const values = { ...item };
+  if (resource === "users" && item.birthdate) {
+    const birthdate = new Date(item.birthdate);
+    values.birthdate = Number.isNaN(birthdate.valueOf()) ? "" : birthdate.toISOString().slice(0, 10);
+  }
   if (resource === "matches") {
     values.homeTeam = item.homeTeam?.id?._id || item.homeTeam?.id || "";
     values.awayTeam = item.awayTeam?.id?._id || item.awayTeam?.id || "";
@@ -996,7 +1068,48 @@ function toRequestValues(resource, values) {
 }
 
 function MessagesPage() {
-  return <PanelShell sections={adminSections} title="Messages" admin><EmptyState title="No message center is connected" text="This project does not currently have a contact-message API or message storage. Configure a support inbox to receive customer messages here." /></PanelShell>;
+  const { data, loading, error, reload } = useRequest("/admin/messages?limit=100");
+  const [updating, setUpdating] = useState("");
+  const [updateError, setUpdateError] = useState("");
+  const messages = Array.isArray(data) ? data : data?.data || [];
+
+  const updateStatus = async (id, status) => {
+    setUpdating(id);
+    setUpdateError("");
+    try {
+      await api(`/admin/messages/${id}`, { method: "PATCH", body: { status } });
+      await reload();
+    } catch (requestError) {
+      setUpdateError(requestError.message);
+    } finally {
+      setUpdating("");
+    }
+  };
+
+  return (
+    <PanelShell sections={adminSections} title="Messages" admin>
+      {updateError && <ErrorMessage message={updateError} />}
+      {loading ? <Loading /> : error ? <ErrorMessage message={error} /> : messages.length ? (
+        <div className="message-list">
+          {messages.map((item) => (
+            <article className="surface-card message-card" key={item._id}>
+              <div className="message-card-heading">
+                <div><span className="eyebrow">{formatDate(item.submittedAt)}</span><h2>{item.subject}</h2></div>
+                <label className="field message-status-field">
+                  <span>Status</span>
+                  <select value={item.status} disabled={updating === item._id} onChange={(event) => updateStatus(item._id, event.target.value)}>
+                    <option value="new">New</option><option value="read">Read</option><option value="resolved">Resolved</option>
+                  </select>
+                </label>
+              </div>
+              <p className="message-body">{item.message}</p>
+              <div className="message-sender"><strong>{item.name}</strong><a className="text-link" href={`mailto:${encodeURIComponent(item.email)}`}>{item.email}</a></div>
+            </article>
+          ))}
+        </div>
+      ) : <EmptyState title="Your inbox is clear" text="Customer contact messages will appear here." />}
+    </PanelShell>
+  );
 }
 
 function PanelShell({ sections, title, admin = false, children }) {
@@ -1019,11 +1132,11 @@ function PanelShell({ sections, title, admin = false, children }) {
   );
 }
 
-function Field({ label, type = "text", value, onChange, required, autoComplete, multiline = false, hint }) {
+function Field({ label, type = "text", value, onChange, required, autoComplete, multiline = false, hint, maxLength, readOnly }) {
   return (
     <label className="field">
       <span>{label}{required && <b> *</b>}</span>
-      {multiline ? <textarea value={value} onChange={(event) => onChange(event.target.value)} required={required} rows={7} /> : <input type={type} value={value} onChange={(event) => onChange(event.target.value)} required={required} autoComplete={autoComplete} />}
+      {multiline ? <textarea value={value} onChange={(event) => onChange(event.target.value)} required={required} rows={7} maxLength={maxLength} /> : <input type={type} value={value} onChange={(event) => onChange(event.target.value)} required={required} autoComplete={autoComplete} maxLength={maxLength} readOnly={readOnly} />}
       {hint && <small className="field-hint">{hint}</small>}
     </label>
   );
