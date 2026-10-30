@@ -996,10 +996,10 @@ function ImageUploadField({ field, value, onChange }) {
 function SearchableEntityField({ field, value, onChange, options }) {
   const listId = `options-${field.name}`;
   const selected = options.find((item) => item._id === value);
-  const [query, setQuery] = useState(selected?.name || "");
+  const [query, setQuery] = useState(selected?.name?.trim() || "");
 
   useEffect(() => {
-    setQuery(selected?.name || "");
+    setQuery(selected?.name?.trim() || "");
   }, [selected?.name, value]);
 
   const addPath = field.type === "team" ? "teams" : field.type === "stadium" ? "stadiums" : "competitions";
@@ -1017,7 +1017,8 @@ function SearchableEntityField({ field, value, onChange, options }) {
         onChange={(event) => {
           const nextQuery = event.target.value;
           setQuery(nextQuery);
-          const match = options.find((item) => item.name.toLowerCase() === nextQuery.trim().toLowerCase());
+          const normalizedQuery = nextQuery.trim().toLowerCase();
+          const match = options.find((item) => item.name.trim().toLowerCase() === normalizedQuery);
           onChange(match?._id || "");
         }}
       />

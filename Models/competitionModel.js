@@ -4,6 +4,7 @@ const competitionSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, "each competition must have  name"],
+    trim: true,
     minLength: [2, "competition  name must have at least 2 characters"],
     maxLength: [
       100,
