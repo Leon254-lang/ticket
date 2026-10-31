@@ -48,7 +48,7 @@ Ticketify uses MongoDB Atlas for both local development and deployment. The back
 
 ## Render deployment
 
-The included `render.yaml` configures the Render build command as `npm install && npm run build` and the start command as `npm start`. If configuring the service in the Render dashboard instead, use those same commands. For compatibility with existing services configured to run `node app.js`, that entry point now delegates to the server bootstrap.
+The included `render.yaml` configures the Render build command to install development dependencies, build the React app, and verify that `client/dist/index.html` exists before deployment. The start command is `npm start`. If configuring the service in the Render dashboard instead, set the root directory to the repository root, use `npm install --include=dev && npm run build && node -e "require('fs').accessSync('client/dist/index.html')"` as the build command, and `npm start` as the start command. Do not set the root directory to `client`; the Express server and package manifest are in the repository root. For compatibility with existing services configured to run `node app.js`, that entry point now delegates to the server bootstrap.
 
 Set `DATABASE_CONNECTION_STRING` to the Atlas connection URI and `JWT_SECRET_CODE` to a long random secret in the Render environment settings. Do not commit `.env` or paste database credentials into the build or start command.
 
