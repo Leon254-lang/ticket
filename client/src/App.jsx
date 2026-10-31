@@ -312,8 +312,11 @@ function MatchPage() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const ticketTypes = (match?.ticketTypes || []).filter(
+  const availableTicketTypes = (match?.ticketTypes || []).filter(
     (ticketType) => ticketType.enabled && ticketType.availableQuantity > 0
+  );
+  const ticketTypes = availableTicketTypes.filter(
+    (ticketType) => ticketType.currency === "KES" && Number.isSafeInteger(ticketType.price)
   );
   useEffect(() => {
     if (ticketTypes.length && !ticketTypes.some((item) => item.id === ticketTypeId)) {
@@ -331,7 +334,7 @@ function MatchPage() {
         method: "POST",
         body: { matchId: match._id, ticketTypeId, quantity, phoneNumber },
       });
-      window.location.assign(response.data.checkoutUrl);
+      navigate(`/payment/result?reference=${encodeURIComponent(response.data.reference)}`);
     } catch (requestError) {
       setMessage(requestError.message);
     } finally {
@@ -369,11 +372,14 @@ function MatchPage() {
           <form className="booking-form" onSubmit={book}>
             <label className="field"><span>Ticket type</span><select value={ticketTypeId} onChange={(event) => { setTicketTypeId(event.target.value); setQuantity(1); }}>{ticketTypes.map((ticketType) => <option key={ticketType.id} value={ticketType.id}>{ticketType.name} · {formatMoney(ticketType.price, ticketType.currency)} · {ticketType.availableQuantity} left</option>)}</select></label>
             <label className="field"><span>Quantity</span><input type="number" min="1" max={ticketTypes.find((item) => item.id === ticketTypeId)?.availableQuantity || 1} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} required /></label>
-            <label className="field"><span>Phone number for mobile money <small>(optional)</small></span><input type="tel" autoComplete="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="+254…" /></label>
+            <label className="field"><span>M-Pesa phone number</span><input type="tel" autoComplete="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="07XX XXX XXX or 2547XX XXX XXX" required /></label>
+            <p className="form-hint">We’ll send an M-Pesa payment prompt to this number. Enter your M-Pesa PIN on your phone.</p>
             {message && <div className="notice notice-error">{message}</div>}
-            <button className="button" disabled={busy || !ticketTypeId || quantity < 1}>{busy ? "Starting checkout…" : "Continue to payment"} <i className="bi bi-arrow-right" /></button>
+            <button className="button" disabled={busy || !ticketTypeId || quantity < 1}>{busy ? "Sending M-Pesa prompt…" : "Pay with M-Pesa"} <i className="bi bi-arrow-right" /></button>
             {!user.verifiedEmail && <p className="form-hint">Email verification is required before booking.</p>}
           </form>
+        ) : availableTicketTypes.length ? (
+          <div className="notice notice-info">M-Pesa checkout is available for whole-number ticket prices in KES.</div>
         ) : <EmptyState title="No tickets are available" text="Please check back later." />}
       </section>
     </main>
@@ -403,7 +409,7 @@ function PaymentResultPage() {
     success: ["Payment confirmed", "Your tickets are ready in your account."],
     failed: ["Payment not completed", "Your ticket reservation has been released. You can try booking again."],
     support: ["Payment received, booking needs attention", "Your payment arrived after the reservation expired. Contact support with your booking reference."],
-    processing: ["Payment processing", "Waiting for the server to confirm payment through Flutterwave's signed webhook. This page will refresh automatically."],
+    processing: ["Waiting for M-Pesa payment", "Check your phone and enter your M-Pesa PIN. We’ll confirm your tickets as soon as Safaricom verifies the payment."],
   }[status] || ["Payment status unavailable", "Check your account for the latest booking status."];
   return (
     <main className="page-main auth-page">

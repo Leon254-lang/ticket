@@ -35,12 +35,21 @@ const bookingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending_payment", "paid", "failed", "expired", "paid_after_expiry"],
+      enum: [
+        "pending_payment",
+        "stk_prompt_sent",
+        "paid",
+        "failed",
+        "expired",
+        "paid_after_expiry",
+      ],
       default: "pending_payment",
       index: true,
     },
     expiresAt: { type: Date, required: true, index: true },
     paymentUrl: { type: String },
+    checkoutRequestId: { type: String },
+    merchantRequestId: { type: String },
     transactionId: { type: String },
     paymentFailure: { type: String },
     paidAt: { type: Date },
@@ -53,6 +62,10 @@ bookingSchema.index({ status: 1, expiresAt: 1 });
 bookingSchema.index(
   { transactionId: 1 },
   { unique: true, sparse: true, name: "unique_flutterwave_transaction_id" }
+);
+bookingSchema.index(
+  { checkoutRequestId: 1 },
+  { unique: true, sparse: true, name: "unique_daraja_checkout_request_id" }
 );
 
 module.exports = mongoose.model("bookings", bookingSchema);

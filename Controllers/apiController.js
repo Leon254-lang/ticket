@@ -13,7 +13,11 @@ const contactMessageModel = require("../Models/contactMessageModel");
 const EmailSender = require("../utilities/email");
 const { catchAsync, AppError } = require("../utilities/errorHandler");
 const { ensureMatchInventory } = require("../utilities/ticketInventory");
-const { createCheckout, verifyTransaction } = require("../utilities/flutterwave");
+const {
+  initiateStkPush,
+  normalizePhoneNumber,
+  queryStkPush,
+} = require("../utilities/daraja");
 
 const publicUser = (user) => {
   const data = user.toObject ? user.toObject() : { ...user };
@@ -449,7 +453,7 @@ const releaseBooking = async (bookingId, status, reason, transactionId) => {
   try {
     await session.withTransaction(async () => {
       const booking = await bookingModel.findOneAndUpdate(
-        { _id: bookingId, status: "pending_payment" },
+        { _id: bookingId, status: { $in: ["pending_payment", "stk_prompt_sent"] } },
         {
           $set: {
             status,
@@ -489,42 +493,7 @@ const releaseBooking = async (bookingId, status, reason, transactionId) => {
   return released;
 };
 
-const completePayment = async (transaction) => {
-  const booking = await bookingModel.findOne({ reference: transaction.tx_ref });
-  if (!booking) throw new AppError("Booking reference was not found", 404);
-  const paymentStatus = String(transaction.status || "").toLowerCase();
-  const transactionId = transaction.id == null ? "" : String(transaction.id).trim();
-  if (paymentStatus !== "successful") {
-    if (["failed", "cancelled", "canceled"].includes(paymentStatus)) {
-      await releaseBooking(
-        booking._id,
-        "failed",
-        "Flutterwave reported an unsuccessful payment",
-        transactionId
-      );
-    }
-    return bookingModel.findById(booking._id);
-  }
-  if (!transactionId) {
-    throw new AppError("Flutterwave did not provide a transaction ID", 502);
-  }
-
-  const amount = Number(transaction.amount);
-  if (
-    String(transaction.tx_ref) !== booking.reference ||
-    String(transaction.currency).toUpperCase() !== booking.currency ||
-    !Number.isFinite(amount) ||
-    Math.round(amount * 100) !== Math.round(booking.amount * 100)
-  ) {
-    await releaseBooking(
-      booking._id,
-      "failed",
-      "Verified payment did not match the booking amount or currency",
-      transactionId
-    );
-    return bookingModel.findById(booking._id);
-  }
-
+const completeDarajaPayment = async (booking, transactionId) => {
   const session = await mongoose.startSession();
   try {
     let result;
@@ -549,7 +518,7 @@ const completePayment = async (transaction) => {
         throw new AppError("Booking is already associated with a different transaction", 409);
       }
 
-      const wasReserved = current.status === "pending_payment";
+      const wasReserved = ["pending_payment", "stk_prompt_sent"].includes(current.status);
       const inventoryFilter = {
         _id: current.match,
         ticketTypes: {
@@ -635,20 +604,12 @@ const completePayment = async (transaction) => {
     return result;
   } catch (error) {
     if (error?.code === 11000 && error?.keyPattern?.transactionId) {
-      throw new AppError("Flutterwave transaction has already been processed", 409);
+      throw new AppError("M-Pesa transaction has already been processed", 409);
     }
     throw error;
   } finally {
     await session.endSession();
   }
-};
-
-const processFlutterwaveTransaction = async (transactionId, reference) => {
-  const transaction = await verifyTransaction(transactionId);
-  if (String(transaction.tx_ref) !== String(reference)) {
-    throw new AppError("Flutterwave transaction reference did not match", 400);
-  }
-  return completePayment(transaction);
 };
 
 exports.createBooking = catchAsync(async (req, res) => {
@@ -663,12 +624,7 @@ exports.createBooking = catchAsync(async (req, res) => {
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
     throw new AppError("Choose between 1 and 10 tickets", 400);
   }
-  const phoneNumber = String(req.body.phoneNumber || "").trim();
-  if (phoneNumber && !/^[+\d][\d\s().-]{5,23}$/.test(phoneNumber)) {
-    throw new AppError("Enter a valid phone number", 400);
-  }
-  const appBaseUrl = String(process.env.APP_BASE_URL || "").replace(/\/$/, "");
-  if (!appBaseUrl) throw new AppError("APP_BASE_URL is required for checkout", 503);
+  const phoneNumber = normalizePhoneNumber(req.body.phoneNumber);
 
   const session = await mongoose.startSession();
   let booking;
@@ -725,7 +681,7 @@ exports.createBooking = catchAsync(async (req, res) => {
             customer: {
               name,
               email: req.user.email,
-              ...(phoneNumber ? { phoneNumber } : {}),
+              phoneNumber,
             },
             status: "pending_payment",
             expiresAt: new Date(Date.now() + 10 * 60 * 1000),
@@ -739,17 +695,18 @@ exports.createBooking = catchAsync(async (req, res) => {
     await session.endSession();
   }
 
+  let stkPush;
   try {
-    const checkoutUrl = await createCheckout(
-      booking,
-      `${appBaseUrl}/api/payments/flutterwave/return`
-    );
-    booking.paymentUrl = checkoutUrl;
-    await booking.save();
+    stkPush = await initiateStkPush(booking, phoneNumber);
   } catch (error) {
     await releaseBooking(booking._id, "failed", "Could not initialize payment");
     throw error;
   }
+
+  booking.checkoutRequestId = stkPush.checkoutRequestId;
+  booking.merchantRequestId = stkPush.merchantRequestId;
+  booking.status = "stk_prompt_sent";
+  await booking.save();
 
   res.status(201).json({
     data: {
@@ -758,7 +715,7 @@ exports.createBooking = catchAsync(async (req, res) => {
       amount: booking.amount,
       currency: booking.currency,
       expiresAt: booking.expiresAt,
-      checkoutUrl: booking.paymentUrl,
+      message: "M-Pesa prompt sent. Enter your PIN on your phone to complete payment.",
     },
   });
 });
@@ -772,45 +729,73 @@ exports.getBooking = catchAsync(async (req, res) => {
   res.json({ data: booking });
 });
 
-exports.flutterwaveReturn = catchAsync(async (req, res) => {
-  const reference = String(req.query.tx_ref || "");
-  const appBaseUrl = String(process.env.APP_BASE_URL || "").replace(/\/$/, "");
-  let resultStatus = "processing";
-  if (reference) {
-    const booking = await bookingModel.findOne({ reference }).select("status");
-    resultStatus = booking?.status === "paid"
-      ? "success"
-      : booking?.status === "paid_after_expiry"
-        ? "support"
-        : booking?.status === "failed" || booking?.status === "expired"
-          ? "failed"
-          : "processing";
+exports.darajaCallback = catchAsync(async (req, res) => {
+  const callback = req.body?.Body?.stkCallback;
+  const checkoutRequestId = String(callback?.CheckoutRequestID || "");
+  if (!callback || !checkoutRequestId) {
+    throw new AppError("Invalid M-Pesa callback payload", 400);
   }
-  res.redirect(
-    `${appBaseUrl}/payment/result?status=${resultStatus}&reference=${encodeURIComponent(reference)}`
-  );
-});
 
-exports.flutterwaveWebhook = catchAsync(async (req, res) => {
-  const expected = String(process.env.FLUTTERWAVE_SECRET_HASH || "");
-  const received = String(req.get("verif-hash") || "");
-  const validSignature = expected && received &&
-    Buffer.byteLength(expected) === Buffer.byteLength(received) &&
-    crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received));
-  if (!validSignature) return res.status(401).end();
-  if (req.body?.event !== "charge.completed") return res.status(200).end();
-  const transactionId = req.body?.data?.id;
-  const reference = req.body?.data?.tx_ref;
-  if (!transactionId || !reference) {
-    throw new AppError("Flutterwave webhook is missing its transaction ID or booking reference", 400);
+  const booking = await bookingModel.findOne({
+    checkoutRequestId,
+  });
+  if (!booking) {
+    return res.status(200).json({ ResultCode: 0, ResultDesc: "Accepted" });
   }
-  await processFlutterwaveTransaction(transactionId, reference);
-  res.status(200).end();
+  if (
+    booking.merchantRequestId &&
+    String(callback.MerchantRequestID || "") !== booking.merchantRequestId
+  ) {
+    throw new AppError("M-Pesa callback did not match the booking request", 400);
+  }
+
+  const verification = await queryStkPush(booking.checkoutRequestId);
+  if (
+    String(verification.CheckoutRequestID || "") !== booking.checkoutRequestId ||
+    String(verification.ResponseCode) !== "0"
+  ) {
+    throw new AppError("Safaricom could not verify the M-Pesa request", 502);
+  }
+
+  const callbackResultCode = String(callback.ResultCode);
+  if (
+    verification.ResultCode == null ||
+    String(verification.ResultCode) !== callbackResultCode
+  ) {
+    throw new AppError("M-Pesa callback status did not match Safaricom verification", 502);
+  }
+  if (callbackResultCode !== "0") {
+    await releaseBooking(
+      booking._id,
+      "failed",
+      String(callback.ResultDesc || "M-Pesa payment was not completed").slice(0, 250)
+    );
+    return res.status(200).json({ ResultCode: 0, ResultDesc: "Accepted" });
+  }
+
+  const metadata = callback.CallbackMetadata?.Item;
+  const metadataValue = (name) =>
+    metadata?.find((item) => item.Name === name)?.Value;
+  const receipt = String(metadataValue("MpesaReceiptNumber") || "").trim();
+  const amount = Number(metadataValue("Amount"));
+  const callbackPhone = normalizePhoneNumber(metadataValue("PhoneNumber"));
+  if (
+    !receipt ||
+    booking.currency !== "KES" ||
+    !Number.isFinite(amount) ||
+    Math.round(amount * 100) !== Math.round(booking.amount * 100) ||
+    callbackPhone !== normalizePhoneNumber(booking.customer.phoneNumber)
+  ) {
+    throw new AppError("M-Pesa payment details did not match the booking", 400);
+  }
+
+  await completeDarajaPayment(booking, receipt);
+  res.status(200).json({ ResultCode: 0, ResultDesc: "Accepted" });
 });
 
 exports.expirePendingBookings = async () => {
   const expired = await bookingModel.find({
-    status: "pending_payment",
+    status: { $in: ["pending_payment", "stk_prompt_sent"] },
     expiresAt: { $lte: new Date() },
   }).select("_id").limit(100);
   for (const booking of expired) {
