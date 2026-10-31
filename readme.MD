@@ -105,6 +105,8 @@ Supported catalog resources are `matches`, `teams`, `stadiums`, and `competition
 
 Admins can upload team logos and backgrounds, stadium images, competition logos, and match cover images from the resource forms. Images are stored in MongoDB Atlas GridFS (not Render's temporary filesystem); supported formats are PNG, JPEG, WebP, and GIF, up to 5 MB per image.
 
+To configure ticket sales in the admin dashboard, open **Admin → Matches**, create a match or edit one, then use **Ticket types and prices** to add names, whole-number KES prices, and total capacity. Capacity cannot be reduced below tickets already sold or reserved, and types with sold/reserved tickets cannot be removed. At least one type is required when creating a match.
+
 ## Email and payments
 
 Email verification and password-reset flows require the `NODE_MAILER_*` settings. Configure `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, and `MPESA_CALLBACK_URL` in the server environment. Use the Daraja sandbox app and set `MPESA_ENV=sandbox` for testing; after Safaricom approves the Go Live process, set `MPESA_ENV=production` and use the live shortcode/passkey. The callback URL must be a publicly reachable HTTPS URL ending in `/api/mpesa/callback`. Use `MPESA_TRANSACTION_TYPE=CustomerPayBillOnline` for a PayBill or `CustomerBuyGoodsOnline` for a Till. Keep all Daraja credentials server-side and never add them to frontend variables.

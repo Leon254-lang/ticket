@@ -39,6 +39,76 @@ const makeSlug = (value) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
+const normalizeTicketTypes = (submitted, existing = [], allowEmpty = false) => {
+  if (!Array.isArray(submitted) || submitted.length > 50) {
+    throw new AppError("A match can have at most 50 ticket types", 400);
+  }
+  if (!submitted.length && !allowEmpty) {
+    throw new AppError("Add at least one ticket type", 400);
+  }
+
+  const existingById = new Map(existing.map((item) => [item.id, item]));
+  const usedIds = new Set();
+  const ticketTypes = submitted.map((item) => {
+    const name = String(item.name || "").trim();
+    const id = String(item.id || makeSlug(name)).trim().toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "").slice(0, 64);
+    const price = Number(item.price);
+    const quantity = Number(item.quantity);
+    const currency = String(item.currency || "KES").trim().toUpperCase();
+    if (!name || name.length > 80) {
+      throw new AppError("Ticket type names must be between 1 and 80 characters", 400);
+    }
+    if (!id || usedIds.has(id)) {
+      throw new AppError("Ticket type IDs must be unique", 400);
+    }
+    if (!Number.isSafeInteger(price) || price < 1) {
+      throw new AppError("M-Pesa ticket prices must be whole numbers greater than zero", 400);
+    }
+    if (currency !== "KES") {
+      throw new AppError("Ticket prices must use KES for M-Pesa checkout", 400);
+    }
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 40000) {
+      throw new AppError("Ticket quantity must be between 1 and 40,000", 400);
+    }
+
+    usedIds.add(id);
+    const previous = existingById.get(id);
+    const soldQuantity = previous?.soldQuantity || 0;
+    const reservedQuantity = previous?.reservedQuantity || 0;
+    if (quantity < soldQuantity + reservedQuantity) {
+      throw new AppError(
+        `Capacity for ${name} cannot be lower than its sold and reserved tickets`,
+        409
+      );
+    }
+    return {
+      id,
+      name,
+      price,
+      currency,
+      quantity,
+      availableQuantity: quantity - soldQuantity - reservedQuantity,
+      reservedQuantity,
+      soldQuantity,
+      enabled: item.enabled !== false,
+    };
+  });
+
+  for (const previous of existing) {
+    if (
+      !usedIds.has(previous.id) &&
+      ((previous.soldQuantity || 0) > 0 || (previous.reservedQuantity || 0) > 0)
+    ) {
+      throw new AppError(
+        `Cannot remove ${previous.name}; it has sold or reserved tickets`,
+        409
+      );
+    }
+  }
+  return ticketTypes;
+};
+
 const setAuthCookie = (res, token, req) => {
   const cookieOptions = {
     httpOnly: true,
@@ -831,6 +901,20 @@ exports.createResource = catchAsync(async (req, res) => {
       throw new AppError("The teams and stadium must use the same sport", 400);
     }
     const matchDate = new Date(req.body.matchDate);
+    const ticketTypes = Object.prototype.hasOwnProperty.call(req.body, "ticketTypes")
+      ? normalizeTicketTypes(req.body.ticketTypes)
+      : venue.stands.map((stand) => ({
+          id: stand.id,
+          name: stand.name || stand.id,
+          location: stand.location,
+          price: stand.price,
+          currency: stand.currency || "USD",
+          quantity: stand.capacity,
+          availableQuantity: stand.capacity,
+          reservedQuantity: 0,
+          soldQuantity: 0,
+          enabled: stand.availablity,
+        }));
     const match = await matchModel.create({
       ...req.body,
       homeTeam: { id: home._id, name: home.name, logo: home.logo },
@@ -840,18 +924,7 @@ exports.createResource = catchAsync(async (req, res) => {
       sport: venue.sport,
       slug: makeSlug(`${home.name}-${away.name}-${matchDate.toDateString()}`),
       tickets: [],
-      ticketTypes: venue.stands.map((stand) => ({
-        id: stand.id,
-        name: stand.name || stand.id,
-        location: stand.location,
-        price: stand.price,
-        currency: stand.currency || "USD",
-        quantity: stand.capacity,
-        availableQuantity: stand.capacity,
-        reservedQuantity: 0,
-        soldQuantity: 0,
-        enabled: stand.availablity,
-      })),
+      ticketTypes,
     });
     return res.status(201).json({ data: match });
   }
@@ -866,48 +939,68 @@ exports.updateResource = catchAsync(async (req, res) => {
   const Model = resourceModels[resource];
   if (!Model) throw new AppError("Unknown resource", 404);
   if (resource === "matches") {
-    const match = await findEntity(matchModel, id, "Match");
     const updates = { ...req.body };
-    const [home, away] = await Promise.all([
-      findEntity(teamModel, updates.homeTeam || match.homeTeam.id, "Home team"),
-      findEntity(teamModel, updates.awayTeam || match.awayTeam.id, "Away team"),
-    ]);
-    const stadiumId = updates.stadium || match.stadium;
-    if (updates.stadium && String(updates.stadium) !== String(match.stadium)) {
-      if (match.startBuyDate <= new Date()) {
-        throw new AppError("The stadium cannot be changed after ticket sales begin", 400);
-      }
+    const session = await mongoose.startSession();
+    let updatedMatch;
+    try {
+      await session.withTransaction(async () => {
+        if (!/^[0-9a-fA-F]{24}$/.test(String(id))) {
+          throw new AppError("Invalid Match id", 400);
+        }
+        const match = await matchModel.findById(id).session(session);
+        if (!match) throw new AppError("Match not found", 404);
+        if (Object.prototype.hasOwnProperty.call(updates, "ticketTypes")) {
+          await ensureMatchInventory(match, session);
+          match.ticketTypes = normalizeTicketTypes(
+            updates.ticketTypes,
+            match.ticketTypes,
+            true
+          );
+        }
+        const [home, away] = await Promise.all([
+          findEntity(teamModel, updates.homeTeam || match.homeTeam.id, "Home team"),
+          findEntity(teamModel, updates.awayTeam || match.awayTeam.id, "Away team"),
+        ]);
+        const stadiumId = updates.stadium || match.stadium;
+        if (updates.stadium && String(updates.stadium) !== String(match.stadium)) {
+          if (match.startBuyDate <= new Date()) {
+            throw new AppError("The stadium cannot be changed after ticket sales begin", 400);
+          }
+        }
+        const stadium = await findEntity(stadiumModel, stadiumId, "Stadium");
+        if (home.sport !== away.sport || home.sport !== stadium.sport) {
+          throw new AppError("The teams and stadium must use the same sport", 400);
+        }
+        match.homeTeam = { id: home._id, name: home.name, logo: home.logo };
+        match.awayTeam = { id: away._id, name: away.name, logo: away.logo };
+        match.stadium = stadium._id;
+        match.sport = stadium.sport;
+        const previousCompetition = await competitionModel.findById(match.competition).session(session);
+        let competitionName = "";
+        if (updates.competition) {
+          const competition = await findEntity(competitionModel, updates.competition, "Competition");
+          match.competition = competition._id;
+          competitionName = competition.name;
+        } else {
+          competitionName = previousCompetition?.name || "";
+        }
+        ["matchDate", "visibleDate", "startBuyDate", "endBuyDate", "cover", "isDisabled"].forEach((key) => {
+          if (updates[key] !== undefined) match[key] = updates[key];
+        });
+        if (updates.fixture !== undefined || updates.competition !== undefined) {
+          const oldPrefix = previousCompetition ? `${previousCompetition.name} - ` : "";
+          const oldFixtureDetail = oldPrefix && match.fixture.startsWith(oldPrefix)
+            ? match.fixture.slice(oldPrefix.length)
+            : match.fixture;
+          const fixtureDetail = updates.fixture === undefined ? oldFixtureDetail : updates.fixture;
+          match.fixture = `${competitionName} - ${fixtureDetail}`;
+        }
+        updatedMatch = await match.save({ session });
+      });
+    } finally {
+      await session.endSession();
     }
-    const stadium = await findEntity(stadiumModel, stadiumId, "Stadium");
-    if (home.sport !== away.sport || home.sport !== stadium.sport) {
-      throw new AppError("The teams and stadium must use the same sport", 400);
-    }
-    match.homeTeam = { id: home._id, name: home.name, logo: home.logo };
-    match.awayTeam = { id: away._id, name: away.name, logo: away.logo };
-    match.stadium = stadium._id;
-    match.sport = stadium.sport;
-    const previousCompetition = await competitionModel.findById(match.competition);
-    let competitionName = "";
-    if (updates.competition) {
-      const competition = await findEntity(competitionModel, updates.competition, "Competition");
-      match.competition = competition._id;
-      competitionName = competition.name;
-    } else {
-      competitionName = previousCompetition?.name || "";
-    }
-    ["matchDate", "visibleDate", "startBuyDate", "endBuyDate", "cover", "isDisabled"].forEach((key) => {
-      if (updates[key] !== undefined) match[key] = updates[key];
-    });
-    if (updates.fixture !== undefined || updates.competition !== undefined) {
-      const oldPrefix = previousCompetition ? `${previousCompetition.name} - ` : "";
-      const oldFixtureDetail = oldPrefix && match.fixture.startsWith(oldPrefix)
-        ? match.fixture.slice(oldPrefix.length)
-        : match.fixture;
-      const fixtureDetail = updates.fixture === undefined ? oldFixtureDetail : updates.fixture;
-      match.fixture = `${competitionName} - ${fixtureDetail}`;
-    }
-    await match.save();
-    return res.json({ data: match });
+    return res.json({ data: updatedMatch });
   }
   const item = await Model.findByIdAndUpdate(id, req.body, {
     new: true,

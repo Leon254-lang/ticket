@@ -855,7 +855,9 @@ function AdminResourcePage() {
   const isEdit = Boolean(id);
   const endpoint = resource === "users"
     ? isEdit ? `/admin/users/${id}` : "/admin/users"
-    : resource === "tickets" ? "/admin/tickets" : config?.endpoint;
+    : resource === "tickets" ? "/admin/tickets"
+      : resource === "matches" && isEdit ? `/admin/matches/${id}`
+        : config?.endpoint;
   const { loading, data, error, reload } = useRequest(
     endpoint ? `${endpoint}?limit=100` : "/admin/users",
     [endpoint, resource, id]
@@ -882,12 +884,14 @@ function AdminResourcePage() {
       setForm({
         ...(resource === "teams" || resource === "stadiums" ? { sport: sports[0] } : {}),
         ...(resource === "stadiums" ? { stands: "[]" } : {}),
-        ...(resource === "matches" ? { isDisabled: false } : {}),
+        ...(resource === "matches" ? { isDisabled: false, ticketTypes: [] } : {}),
       });
       return;
     }
     if (!isEdit || !data) return;
-    const item = resource === "users" ? data : data.find((entry) => entry._id === id);
+    const item = resource === "users" || (resource === "matches" && !Array.isArray(data))
+      ? data
+      : data.find((entry) => entry._id === id);
     if (item) setForm(toFormValues(resource, item));
   }, [data, id, isEdit, isNew, resource]);
 
@@ -895,8 +899,8 @@ function AdminResourcePage() {
     return <PanelShell sections={adminSections} title="Page not found" admin><EmptyState title="Unknown admin section" text="Choose a section from the navigation." /></PanelShell>;
   }
   if (resource === "users" && isNew) return <Navigate to="/adminpanel/users" replace />;
-  if (isEdit && loading) return <PanelShell sections={adminSections} title="Edit user" admin><Loading /></PanelShell>;
-  if (isEdit && error) return <PanelShell sections={adminSections} title="Edit user" admin><ErrorMessage message={error} /></PanelShell>;
+  if (isEdit && loading) return <PanelShell sections={adminSections} title={`Edit ${config?.title?.toLowerCase() || "record"}`} admin><Loading /></PanelShell>;
+  if (isEdit && error) return <PanelShell sections={adminSections} title={`Edit ${config?.title?.toLowerCase() || "record"}`} admin><ErrorMessage message={error} /></PanelShell>;
   const isListing = !isNew && !isEdit;
   const heading = isListing ? (config?.title || capitalize(resource)) : `${isNew ? "Add" : "Edit"} ${config.title.toLowerCase()}`;
 
@@ -977,12 +981,130 @@ function AdminResourcePage() {
           )}
           <form className="form-stack" onSubmit={save}>
             {config.fields.map((field) => <AdminField key={field.name} field={field} value={form[field.name]} onChange={(value) => setForm({ ...form, [field.name]: value })} related={related} />)}
+            {resource === "matches" && (
+              <TicketTypesEditor
+                ticketTypes={form.ticketTypes || []}
+                onChange={(ticketTypes) => setForm((current) => ({ ...current, ticketTypes }))}
+              />
+            )}
             {formError && <div className="notice notice-error">{formError}</div>}
             <div className="form-actions"><button type="button" className="button button-outline" onClick={() => navigate(`/adminpanel/${resource}`)}>Cancel</button><button className="button" disabled={saving}>{saving ? "Saving…" : isEdit ? "Save changes" : "Create"} <i className="bi bi-arrow-right" /></button></div>
           </form>
         </section>
       )}
     </PanelShell>
+  );
+}
+
+function TicketTypesEditor({ ticketTypes, onChange }) {
+  const updateTicketType = (index, key, value) => {
+    onChange(ticketTypes.map((ticketType, itemIndex) =>
+      itemIndex === index ? { ...ticketType, [key]: value } : ticketType
+    ));
+  };
+  const addTicketType = () => {
+    if (ticketTypes.length >= 50) return;
+    onChange([
+      ...ticketTypes,
+      {
+        id: "",
+        name: "",
+        price: "",
+        currency: "KES",
+        quantity: "",
+        reservedQuantity: 0,
+        soldQuantity: 0,
+        enabled: true,
+      },
+    ]);
+  };
+
+  return (
+    <section className="ticket-types-editor">
+      <div className="ticket-types-heading">
+        <div>
+          <span className="eyebrow">EVENT INVENTORY</span>
+          <h3>Ticket types and prices</h3>
+          <p>Prices use KES and total capacity includes sold and reserved tickets.</p>
+        </div>
+        <button type="button" className="button button-outline" onClick={addTicketType} disabled={ticketTypes.length >= 50}>
+          <i className="bi bi-plus-lg" /> Add ticket type
+        </button>
+      </div>
+      {ticketTypes.length ? (
+        <div className="ticket-type-editor-list">
+          {ticketTypes.map((ticketType, index) => {
+            const assigned = Number(ticketType.soldQuantity || 0) + Number(ticketType.reservedQuantity || 0);
+            return (
+              <article className="ticket-type-editor-card" key={ticketType.id || `new-${index}`}>
+                <div className="ticket-type-editor-title">
+                  <strong>{ticketType.name || `Ticket type ${index + 1}`}</strong>
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => onChange(ticketTypes.filter((_, itemIndex) => itemIndex !== index))}
+                    disabled={assigned > 0}
+                    title={assigned > 0 ? "Ticket types with sold or reserved tickets cannot be removed" : "Remove ticket type"}
+                  >
+                    Remove
+                  </button>
+                </div>
+                <div className="ticket-type-editor-fields">
+                  <label className="field">
+                    <span>Ticket type name *</span>
+                    <input
+                      type="text"
+                      maxLength={80}
+                      required
+                      value={ticketType.name || ""}
+                      onChange={(event) => updateTicketType(index, "name", event.target.value)}
+                      placeholder="VIP, Regular, etc."
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Price (KES) *</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      required
+                      value={ticketType.price ?? ""}
+                      onChange={(event) => updateTicketType(index, "price", event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Total capacity *</span>
+                    <input
+                      type="number"
+                      min={Math.max(1, assigned)}
+                      max="40000"
+                      step="1"
+                      required
+                      value={ticketType.quantity ?? ""}
+                      onChange={(event) => updateTicketType(index, "quantity", event.target.value)}
+                    />
+                  </label>
+                  <label className="field ticket-type-enabled">
+                    <span>Available for sale</span>
+                    <input
+                      type="checkbox"
+                      checked={ticketType.enabled !== false}
+                      onChange={(event) => updateTicketType(index, "enabled", event.target.checked)}
+                    />
+                  </label>
+                </div>
+                <small className="field-hint">
+                  {ticketType.soldQuantity || 0} sold · {ticketType.reservedQuantity || 0} reserved ·{" "}
+                  {Math.max(0, Number(ticketType.quantity || 0) - assigned)} available
+                </small>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="notice notice-info">Add at least one ticket type before creating this match.</div>
+      )}
+    </section>
   );
 }
 
@@ -1117,6 +1239,16 @@ function toFormValues(resource, item) {
     values.awayTeam = item.awayTeam?.id?._id || item.awayTeam?.id || "";
     values.stadium = item.stadium?._id || item.stadium || "";
     values.competition = item.competition?._id || item.competition || "";
+    values.ticketTypes = (item.ticketTypes || []).map((ticketType) => ({
+      id: ticketType.id || "",
+      name: ticketType.name || "",
+      price: ticketType.price ?? "",
+      currency: ticketType.currency || "KES",
+      quantity: ticketType.quantity ?? "",
+      reservedQuantity: ticketType.reservedQuantity || 0,
+      soldQuantity: ticketType.soldQuantity || 0,
+      enabled: ticketType.enabled !== false,
+    }));
     const competitionPrefix = item.competition?.name ? `${item.competition.name} - ` : "";
     values.fixture = competitionPrefix && item.fixture?.startsWith(competitionPrefix)
       ? item.fixture.slice(competitionPrefix.length)
