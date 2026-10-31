@@ -303,14 +303,21 @@ function MatchCard({ match }) {
 
 function MatchPage() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const { loading, data: match, error } = useRequest(`/matches/${encodeURIComponent(id)}`, [id]);
   const [ticketTypeId, setTicketTypeId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [idNumber, setIdNumber] = useState(user?.idNumber || "");
+  const [passportNumber, setPassportNumber] = useState(user?.passportNumber || "");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setIdNumber(user?.idNumber || "");
+    setPassportNumber(user?.passportNumber || "");
+  }, [user?.idNumber, user?.passportNumber]);
 
   const availableTicketTypes = (match?.ticketTypes || []).filter(
     (ticketType) => ticketType.enabled && ticketType.availableQuantity > 0
@@ -328,8 +335,30 @@ function MatchPage() {
   const book = async (event) => {
     event.preventDefault();
     setMessage("");
+    const identity = {
+      idNumber: idNumber.trim(),
+      passportNumber: passportNumber.trim(),
+    };
+    if (!identity.idNumber && !identity.passportNumber) {
+      setMessage("Enter your national ID or passport number before booking.");
+      return;
+    }
     setBusy(true);
     try {
+      const profileUpdates = {};
+      if (identity.idNumber && identity.idNumber !== user.idNumber) {
+        profileUpdates.idNumber = identity.idNumber;
+      }
+      if (identity.passportNumber && identity.passportNumber !== user.passportNumber) {
+        profileUpdates.passportNumber = identity.passportNumber;
+      }
+      if (Object.keys(profileUpdates).length) {
+        const profile = await api("/users/me", {
+          method: "PATCH",
+          body: profileUpdates,
+        });
+        setUser(profile.data);
+      }
       const response = await api("/tickets", {
         method: "POST",
         body: { matchId: match._id, ticketTypeId, quantity, phoneNumber },
@@ -373,6 +402,9 @@ function MatchPage() {
             <label className="field"><span>Ticket type</span><select value={ticketTypeId} onChange={(event) => { setTicketTypeId(event.target.value); setQuantity(1); }}>{ticketTypes.map((ticketType) => <option key={ticketType.id} value={ticketType.id}>{ticketType.name} · {formatMoney(ticketType.price, ticketType.currency)} · {ticketType.availableQuantity} left</option>)}</select></label>
             <label className="field"><span>Quantity</span><input type="number" min="1" max={ticketTypes.find((item) => item.id === ticketTypeId)?.availableQuantity || 1} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} required /></label>
             <label className="field"><span>M-Pesa phone number</span><input type="tel" autoComplete="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="07XX XXX XXX or 2547XX XXX XXX" required /></label>
+            <label className="field"><span>National ID number</span><input type="text" autoComplete="off" value={idNumber} onChange={(event) => setIdNumber(event.target.value)} maxLength={32} placeholder="Enter your national ID" /></label>
+            <label className="field"><span>Passport number</span><input type="text" autoComplete="off" value={passportNumber} onChange={(event) => setPassportNumber(event.target.value)} maxLength={32} placeholder="Enter your passport number" /></label>
+            <p className="form-hint">Enter either your national ID or passport number. It will be saved to your account.</p>
             <p className="form-hint">We’ll send an M-Pesa payment prompt to this number. Enter your M-Pesa PIN on your phone.</p>
             {message && <div className="notice notice-error">{message}</div>}
             <button className="button" disabled={busy || !ticketTypeId || quantity < 1}>{busy ? "Sending M-Pesa prompt…" : "Pay with M-Pesa"} <i className="bi bi-arrow-right" /></button>

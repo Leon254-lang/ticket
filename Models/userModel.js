@@ -78,18 +78,20 @@ const userSchema = new mongoose.Schema({
   //id card For iranians
   idNumber: {
     type: String,
-    minLength: [10, "id number number must have 10 digits"],
-    maxLength: [10, "id number must have 10 digits"],
+    minLength: [5, "ID number must have at least 5 characters"],
+    maxLength: [32, "ID number must have at most 32 characters"],
     unique: [true, "this ID number has been already used"],
     sparse: true,
+    trim: true,
   },
   //when users dosen`t have an id number, they can enter a passport number
   passportNumber: {
     type: String,
-    minLength: [10, "Passport Number could not be lower than 7 digits"],
-    maxLength: [10, "Passport Number  must have less than 12 digits"],
+    minLength: [5, "Passport number must have at least 5 characters"],
+    maxLength: [32, "Passport number must have at most 32 characters"],
     unique: [true, "this passport number has been already used"],
     sparse: true,
+    trim: true,
   },
   gender: {
     type: String,
