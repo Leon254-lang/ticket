@@ -7,7 +7,11 @@ const headers = () => {
   if (!process.env.FLUTTERWAVE_SECRET_KEY) {
     throw new AppError("Payment processing is not configured", 503);
   }
-  return { Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}` };
+
+  return {
+    Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+    Accept: "application/json",
+  };
 };
 
 exports.createCheckout = async (booking, redirectUrl) => {
@@ -35,6 +39,7 @@ exports.createCheckout = async (booking, redirectUrl) => {
       },
       { headers: headers() }
     );
+
     const checkoutUrl = response.data?.data?.link;
     if (
       response.data?.status !== "success" ||
@@ -43,6 +48,7 @@ exports.createCheckout = async (booking, redirectUrl) => {
     ) {
       throw new AppError("Flutterwave did not return a valid checkout link", 502);
     }
+
     return checkoutUrl;
   } catch (error) {
     if (error instanceof AppError) throw error;
@@ -56,9 +62,11 @@ exports.verifyTransaction = async (transactionId) => {
       `/transactions/${encodeURIComponent(transactionId)}/verify`,
       { headers: headers() }
     );
+
     if (response.data?.status !== "success" || !response.data?.data) {
       throw new AppError("Flutterwave could not verify this transaction", 502);
     }
+
     return response.data.data;
   } catch (error) {
     if (error instanceof AppError) throw error;

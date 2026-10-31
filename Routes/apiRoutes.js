@@ -31,6 +31,7 @@ router.get("/dashboard/me", api.protect, api.getUserDashboard);
 router.post("/tickets", api.protect, api.createBooking);
 router.get("/bookings/:reference", api.protect, api.getBooking);
 router.get("/payments/flutterwave/return", api.flutterwaveReturn);
+router.post("/payments/webhook", api.flutterwaveWebhook);
 router.post("/payments/flutterwave/webhook", api.flutterwaveWebhook);
 router.post("/contact", api.submitContactMessage);
 

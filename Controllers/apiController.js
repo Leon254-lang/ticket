@@ -493,16 +493,20 @@ const completePayment = async (transaction) => {
   const booking = await bookingModel.findOne({ reference: transaction.tx_ref });
   if (!booking) throw new AppError("Booking reference was not found", 404);
   const paymentStatus = String(transaction.status || "").toLowerCase();
+  const transactionId = transaction.id == null ? "" : String(transaction.id).trim();
   if (paymentStatus !== "successful") {
     if (["failed", "cancelled", "canceled"].includes(paymentStatus)) {
       await releaseBooking(
         booking._id,
         "failed",
         "Flutterwave reported an unsuccessful payment",
-        transaction.id
+        transactionId
       );
     }
     return bookingModel.findById(booking._id);
+  }
+  if (!transactionId) {
+    throw new AppError("Flutterwave did not provide a transaction ID", 502);
   }
 
   const amount = Number(transaction.amount);
@@ -510,13 +514,13 @@ const completePayment = async (transaction) => {
     String(transaction.tx_ref) !== booking.reference ||
     String(transaction.currency).toUpperCase() !== booking.currency ||
     !Number.isFinite(amount) ||
-    amount < booking.amount
+    Math.round(amount * 100) !== Math.round(booking.amount * 100)
   ) {
     await releaseBooking(
       booking._id,
       "failed",
       "Verified payment did not match the booking amount or currency",
-      transaction.id
+      transactionId
     );
     return bookingModel.findById(booking._id);
   }
@@ -526,9 +530,23 @@ const completePayment = async (transaction) => {
     let result;
     await session.withTransaction(async () => {
       const current = await bookingModel.findById(booking._id).session(session);
-      if (!current || current.status === "paid" || current.status === "paid_after_expiry") {
+      if (!current) {
         result = current;
         return;
+      }
+      if (current.status === "paid" || current.status === "paid_after_expiry") {
+        if (current.transactionId && current.transactionId !== transactionId) {
+          throw new AppError("Booking was already processed with a different transaction", 409);
+        }
+        if (!current.transactionId) {
+          current.transactionId = transactionId;
+          await current.save({ session });
+        }
+        result = current;
+        return;
+      }
+      if (current.transactionId && current.transactionId !== transactionId) {
+        throw new AppError("Booking is already associated with a different transaction", 409);
       }
 
       const wasReserved = current.status === "pending_payment";
@@ -563,7 +581,7 @@ const completePayment = async (transaction) => {
       );
       if (!inventoryResult.modifiedCount) {
         current.status = "paid_after_expiry";
-        current.transactionId = String(transaction.id);
+        current.transactionId = transactionId;
         current.paymentFailure =
           "Payment arrived after the reservation was released and inventory was no longer available";
         await current.save({ session });
@@ -607,7 +625,7 @@ const completePayment = async (transaction) => {
         ),
       ]);
       current.status = "paid";
-      current.transactionId = String(transaction.id);
+      current.transactionId = transactionId;
       current.paidAt = new Date();
       current.tickets = tickets.map((ticket) => ticket._id);
       current.paymentFailure = undefined;
@@ -615,6 +633,11 @@ const completePayment = async (transaction) => {
       result = current;
     });
     return result;
+  } catch (error) {
+    if (error?.code === 11000 && error?.keyPattern?.transactionId) {
+      throw new AppError("Flutterwave transaction has already been processed", 409);
+    }
+    throw error;
   } finally {
     await session.endSession();
   }
@@ -744,29 +767,24 @@ exports.getBooking = catchAsync(async (req, res) => {
   const booking = await bookingModel.findOne({
     reference: req.params.reference,
     user: req.user._id,
-  }).select("reference eventName eventDate ticketTypeName quantity amount currency status expiresAt");
+  }).select("reference eventName eventDate ticketTypeName quantity amount currency status expiresAt tickets");
   if (!booking) throw new AppError("Booking not found", 404);
   res.json({ data: booking });
 });
 
 exports.flutterwaveReturn = catchAsync(async (req, res) => {
   const reference = String(req.query.tx_ref || "");
-  const transactionId = String(req.query.transaction_id || "");
   const appBaseUrl = String(process.env.APP_BASE_URL || "").replace(/\/$/, "");
   let resultStatus = "processing";
-  if (reference && transactionId) {
-    try {
-      const booking = await processFlutterwaveTransaction(transactionId, reference);
-      resultStatus = booking?.status === "paid"
-        ? "success"
-        : booking?.status === "paid_after_expiry"
-          ? "support"
-          : booking?.status === "failed" || booking?.status === "expired"
-            ? "failed"
-            : "processing";
-    } catch (error) {
-      resultStatus = "processing";
-    }
+  if (reference) {
+    const booking = await bookingModel.findOne({ reference }).select("status");
+    resultStatus = booking?.status === "paid"
+      ? "success"
+      : booking?.status === "paid_after_expiry"
+        ? "support"
+        : booking?.status === "failed" || booking?.status === "expired"
+          ? "failed"
+          : "processing";
   }
   res.redirect(
     `${appBaseUrl}/payment/result?status=${resultStatus}&reference=${encodeURIComponent(reference)}`
@@ -780,11 +798,13 @@ exports.flutterwaveWebhook = catchAsync(async (req, res) => {
     Buffer.byteLength(expected) === Buffer.byteLength(received) &&
     crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received));
   if (!validSignature) return res.status(401).end();
+  if (req.body?.event !== "charge.completed") return res.status(200).end();
   const transactionId = req.body?.data?.id;
   const reference = req.body?.data?.tx_ref;
-  if (transactionId && reference) {
-    await processFlutterwaveTransaction(transactionId, reference);
+  if (!transactionId || !reference) {
+    throw new AppError("Flutterwave webhook is missing its transaction ID or booking reference", 400);
   }
+  await processFlutterwaveTransaction(transactionId, reference);
   res.status(200).end();
 });
 

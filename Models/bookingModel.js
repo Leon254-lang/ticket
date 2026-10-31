@@ -50,5 +50,9 @@ const bookingSchema = new mongoose.Schema(
 );
 
 bookingSchema.index({ status: 1, expiresAt: 1 });
+bookingSchema.index(
+  { transactionId: 1 },
+  { unique: true, sparse: true, name: "unique_flutterwave_transaction_id" }
+);
 
 module.exports = mongoose.model("bookings", bookingSchema);

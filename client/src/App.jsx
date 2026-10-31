@@ -383,8 +383,7 @@ function MatchPage() {
 function PaymentResultPage() {
   const [searchParams] = useSearchParams();
   const reference = searchParams.get("reference") || "";
-  const requestedStatus = searchParams.get("status") || "processing";
-  const { data: booking, loading, error } = useRequest(
+  const { data: booking, loading, error, reload } = useRequest(
     `/bookings/${encodeURIComponent(reference)}`,
     [reference]
   );
@@ -394,12 +393,17 @@ function PaymentResultPage() {
       ? "support"
       : booking?.status === "failed" || booking?.status === "expired"
         ? "failed"
-        : requestedStatus;
+        : "processing";
+  useEffect(() => {
+    if (status !== "processing" || !reference) return undefined;
+    const timer = window.setInterval(reload, 3000);
+    return () => window.clearInterval(timer);
+  }, [status, reference]);
   const details = {
     success: ["Payment confirmed", "Your tickets are ready in your account."],
     failed: ["Payment not completed", "Your ticket reservation has been released. You can try booking again."],
     support: ["Payment received, booking needs attention", "Your payment arrived after the reservation expired. Contact support with your booking reference."],
-    processing: ["Payment processing", "We are confirming the payment with Flutterwave. Check your tickets in a moment."],
+    processing: ["Payment processing", "Waiting for the server to confirm payment through Flutterwave's signed webhook. This page will refresh automatically."],
   }[status] || ["Payment status unavailable", "Check your account for the latest booking status."];
   return (
     <main className="page-main auth-page">
@@ -408,6 +412,18 @@ function PaymentResultPage() {
         <h1>{details[0]}</h1>
         <p>{details[1]}</p>
         {booking && <p>{booking.eventName} · {booking.ticketTypeName} × {booking.quantity} · {formatMoney(booking.amount, booking.currency)}</p>}
+        {status === "success" && booking?.tickets?.length > 0 && (
+          <div className="ticket-list">
+            {booking.tickets.map((ticketId) => (
+              <article className="ticket-card" key={ticketId}>
+                <div className="ticket-card-detail">
+                  <span>TICKET ID</span>
+                  <strong>{ticketId}</strong>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
         {loading && <p>Loading booking details…</p>}
         {error && status === "processing" && <p>{error}</p>}
         <Link className="button" to={status === "success" ? "/panel/tickets" : "/"}>
@@ -563,6 +579,7 @@ function TicketCard({ ticket }) {
       <div className="ticket-card-detail"><span>DATE</span><strong>{Number.isNaN(date.valueOf()) ? "TBA" : date.toLocaleDateString()}</strong></div>
       <div className="ticket-card-detail"><span>STAND</span><strong>{ticket.stand}</strong></div>
       <div className="ticket-card-detail"><span>PRICE</span><strong>{formatMoney(ticket.price, ticket.currency)}</strong></div>
+      <div className="ticket-card-detail"><span>TICKET ID</span><strong>{ticket._id}</strong></div>
     </article>
   );
 }

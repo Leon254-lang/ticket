@@ -225,7 +225,7 @@ h1, h2, h3, .brand { font-family: "Manrope", sans-serif; }
 .admin-welcome h2 { margin: 10px 0; font-size: 22px; letter-spacing: -.5px; }
 .admin-welcome p { max-width: 560px; margin: 0; color: #798397; font-size: 12px; line-height: 1.7; }
 .ticket-list { display: grid; gap: 12px; }
-.ticket-card { display: grid; grid-template-columns: minmax(200px, 1fr) repeat(3, minmax(80px, .35fr)); align-items: center; gap: 16px; padding: 18px; border: 1px solid #e8ebf0; border-left: 4px solid #c1e981; border-radius: 13px; background: #fff; }
+.ticket-card { display: grid; grid-template-columns: minmax(200px, 1fr) repeat(4, minmax(80px, .35fr)); align-items: center; gap: 16px; padding: 18px; border: 1px solid #e8ebf0; border-left: 4px solid #c1e981; border-radius: 13px; background: #fff; }
 .ticket-team-row { display: flex; align-items: center; gap: 10px; color: #24304a; font: 700 11px "Manrope", sans-serif; }
 .ticket-team-row b { color: #9ca5b5; font-size: 8px; }
 .ticket-card-main p { margin: 8px 0 0; color: #8992a4; font-size: 9px; }
