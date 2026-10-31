@@ -59,6 +59,7 @@ exports.createMatch = catchAsync(async (req, res, next) => {
     isDisabled: req.body.isDisabled,
     cover: req.body.cover,
     tickets: [],
+    ticketTypes: [],
   });
   match.homeTeam.id = req.body.homeTeam;
   match.awayTeam.id = req.body.awayTeam;
@@ -82,6 +83,18 @@ exports.createMatch = catchAsync(async (req, res, next) => {
   match.awayTeam.logo = awayTeam.logo;
 
   const stadium = await stadiumModel.findById(req.body.stadium);
+  match.ticketTypes = stadium.stands.map((stand) => ({
+    id: stand.id,
+    name: stand.name || stand.id,
+    location: stand.location,
+    price: stand.price,
+    currency: stand.currency || "USD",
+    quantity: stand.capacity,
+    availableQuantity: stand.capacity,
+    reservedQuantity: 0,
+    soldQuantity: 0,
+    enabled: stand.availablity,
+  }));
 
   if (stadium.sport != homeTeam.sport) {
     return res.redirect(

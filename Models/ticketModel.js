@@ -25,6 +25,13 @@ const ticketSchema = new mongoose.Schema({
     required: [true, "a ticket must have a price"],
     type: Number,
   },
+  currency: {
+    type: String,
+    default: "USD",
+    uppercase: true,
+    match: /^[A-Z]{3}$/,
+  },
+  booking: { type: mongoose.Types.ObjectId, ref: "bookings" },
 });
 
 //this method will check available capacity for the stand

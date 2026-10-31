@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const { promisify } = require("util");
 const userModel = require("../Models/userModel");
@@ -7,9 +8,12 @@ const teamModel = require("../Models/teamModel");
 const stadiumModel = require("../Models/stadiumModel");
 const competitionModel = require("../Models/competitionModel");
 const ticketModel = require("../Models/ticketModel");
+const bookingModel = require("../Models/bookingModel");
 const contactMessageModel = require("../Models/contactMessageModel");
 const EmailSender = require("../utilities/email");
 const { catchAsync, AppError } = require("../utilities/errorHandler");
+const { ensureMatchInventory } = require("../utilities/ticketInventory");
+const { createCheckout, verifyTransaction } = require("../utilities/flutterwave");
 
 const publicUser = (user) => {
   const data = user.toObject ? user.toObject() : { ...user };
@@ -278,6 +282,7 @@ exports.getMatch = catchAsync(async (req, res) => {
   ) {
     throw new AppError("This match is not available", 404);
   }
+  await ensureMatchInventory(match);
   res.json({ data: match });
 });
 
@@ -438,56 +443,366 @@ exports.getMyTickets = catchAsync(async (req, res) => {
   res.json({ data: tickets.filter((ticket) => ticket.match) });
 });
 
-exports.purchaseTicket = catchAsync(async (req, res) => {
-  const { matchId, standId } = req.body;
-  if (!matchId || !standId) throw new AppError("Choose a match and stand", 400);
+const releaseBooking = async (bookingId, status, reason, transactionId) => {
+  const session = await mongoose.startSession();
+  let released = false;
+  try {
+    await session.withTransaction(async () => {
+      const booking = await bookingModel.findOneAndUpdate(
+        { _id: bookingId, status: "pending_payment" },
+        {
+          $set: {
+            status,
+            paymentFailure: reason,
+            ...(transactionId ? { transactionId: String(transactionId) } : {}),
+          },
+        },
+        { new: true, session }
+      );
+      if (!booking) return;
+      const result = await matchModel.updateOne(
+        {
+          _id: booking.match,
+          ticketTypes: {
+            $elemMatch: {
+              id: booking.ticketTypeId,
+              reservedQuantity: { $gte: booking.quantity },
+            },
+          },
+        },
+        {
+          $inc: {
+            "ticketTypes.$.reservedQuantity": -booking.quantity,
+            "ticketTypes.$.availableQuantity": booking.quantity,
+          },
+        },
+        { session }
+      );
+      if (!result.modifiedCount) {
+        throw new AppError("Could not release the reserved ticket inventory", 500);
+      }
+      released = true;
+    });
+  } finally {
+    await session.endSession();
+  }
+  return released;
+};
+
+const completePayment = async (transaction) => {
+  const booking = await bookingModel.findOne({ reference: transaction.tx_ref });
+  if (!booking) throw new AppError("Booking reference was not found", 404);
+  const paymentStatus = String(transaction.status || "").toLowerCase();
+  if (paymentStatus !== "successful") {
+    if (["failed", "cancelled", "canceled"].includes(paymentStatus)) {
+      await releaseBooking(
+        booking._id,
+        "failed",
+        "Flutterwave reported an unsuccessful payment",
+        transaction.id
+      );
+    }
+    return bookingModel.findById(booking._id);
+  }
+
+  const amount = Number(transaction.amount);
+  if (
+    String(transaction.tx_ref) !== booking.reference ||
+    String(transaction.currency).toUpperCase() !== booking.currency ||
+    !Number.isFinite(amount) ||
+    amount < booking.amount
+  ) {
+    await releaseBooking(
+      booking._id,
+      "failed",
+      "Verified payment did not match the booking amount or currency",
+      transaction.id
+    );
+    return bookingModel.findById(booking._id);
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    let result;
+    await session.withTransaction(async () => {
+      const current = await bookingModel.findById(booking._id).session(session);
+      if (!current || current.status === "paid" || current.status === "paid_after_expiry") {
+        result = current;
+        return;
+      }
+
+      const wasReserved = current.status === "pending_payment";
+      const inventoryFilter = {
+        _id: current.match,
+        ticketTypes: {
+          $elemMatch: {
+            id: current.ticketTypeId,
+            ...(wasReserved
+              ? { reservedQuantity: { $gte: current.quantity } }
+              : { availableQuantity: { $gte: current.quantity } }),
+          },
+        },
+      };
+      const inventoryUpdate = wasReserved
+        ? {
+            $inc: {
+              "ticketTypes.$.reservedQuantity": -current.quantity,
+              "ticketTypes.$.soldQuantity": current.quantity,
+            },
+          }
+        : {
+            $inc: {
+              "ticketTypes.$.availableQuantity": -current.quantity,
+              "ticketTypes.$.soldQuantity": current.quantity,
+            },
+          };
+      const inventoryResult = await matchModel.updateOne(
+        inventoryFilter,
+        inventoryUpdate,
+        { session }
+      );
+      if (!inventoryResult.modifiedCount) {
+        current.status = "paid_after_expiry";
+        current.transactionId = String(transaction.id);
+        current.paymentFailure =
+          "Payment arrived after the reservation was released and inventory was no longer available";
+        await current.save({ session });
+        result = current;
+        return;
+      }
+
+      const ticketData = Array.from({ length: current.quantity }, () => ({
+        user: current.user,
+        match: current.match,
+        stand: current.ticketTypeId,
+        purchaseDate: new Date(),
+        price: current.unitPrice,
+        currency: current.currency,
+        booking: current._id,
+      }));
+      const tickets = await ticketModel.create(ticketData, { session });
+      const matchEntries = tickets.map((ticket) => ({
+        ticketID: ticket._id,
+        stand: current.ticketTypeId,
+        userID: "",
+        userPassportNO: "",
+        userMail: current.customer.email,
+      }));
+      const userEntries = tickets.map((ticket) => ({
+        id: ticket._id,
+        price: ticket.price,
+        match: current.match,
+        matchDate: current.eventDate,
+      }));
+      await Promise.all([
+        matchModel.updateOne(
+          { _id: current.match },
+          { $push: { tickets: { $each: matchEntries } } },
+          { session }
+        ),
+        userModel.updateOne(
+          { _id: current.user },
+          { $push: { tickets: { $each: userEntries } } },
+          { session }
+        ),
+      ]);
+      current.status = "paid";
+      current.transactionId = String(transaction.id);
+      current.paidAt = new Date();
+      current.tickets = tickets.map((ticket) => ticket._id);
+      current.paymentFailure = undefined;
+      await current.save({ session });
+      result = current;
+    });
+    return result;
+  } finally {
+    await session.endSession();
+  }
+};
+
+const processFlutterwaveTransaction = async (transactionId, reference) => {
+  const transaction = await verifyTransaction(transactionId);
+  if (String(transaction.tx_ref) !== String(reference)) {
+    throw new AppError("Flutterwave transaction reference did not match", 400);
+  }
+  return completePayment(transaction);
+};
+
+exports.createBooking = catchAsync(async (req, res) => {
+  const matchId = req.body.matchId;
+  const ticketTypeId = String(req.body.ticketTypeId || "").trim();
   if (!req.user.verifiedEmail) throw new AppError("Verify your email before booking", 403);
   if (!req.user.idNumber && !req.user.passportNumber) {
     throw new AppError("Add an ID or passport number before booking", 403);
   }
-  const match = await matchModel.findById(matchId);
-  if (!match || match.isDisabled) throw new AppError("This match is not available", 404);
-  const now = new Date();
-  if (
-    now < match.visibleDate ||
-    now < match.startBuyDate ||
-    now > match.endBuyDate ||
-    now > match.matchDate
-  ) {
-    throw new AppError("Ticket sales are not open for this match", 400);
+  if (!matchId || !ticketTypeId) throw new AppError("Choose a match and ticket type", 400);
+  const quantity = Number(req.body.quantity);
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
+    throw new AppError("Choose between 1 and 10 tickets", 400);
   }
-  if (await ticketModel.findOne({ match: matchId, user: req.user._id })) {
-    throw new AppError("You already have a ticket for this match", 409);
+  const phoneNumber = String(req.body.phoneNumber || "").trim();
+  if (phoneNumber && !/^[+\d][\d\s().-]{5,23}$/.test(phoneNumber)) {
+    throw new AppError("Enter a valid phone number", 400);
   }
-  const stadium = await stadiumModel.findById(match.stadium);
-  const stand = stadium && stadium.stands.find((item) => item.id === standId && item.availablity);
-  if (!stand) throw new AppError("That stand is unavailable", 400);
-  const sold = match.tickets.filter((item) => item.stand === standId).length;
-  if (sold >= stand.capacity) throw new AppError("That stand is sold out", 409);
-  const ticket = await ticketModel.create({
-    user: req.user._id,
-    match: match._id,
-    stand: stand.id,
-    purchaseDate: now,
-    price: stand.price,
+  const appBaseUrl = String(process.env.APP_BASE_URL || "").replace(/\/$/, "");
+  if (!appBaseUrl) throw new AppError("APP_BASE_URL is required for checkout", 503);
+
+  const session = await mongoose.startSession();
+  let booking;
+  try {
+    await session.withTransaction(async () => {
+      let match = await matchModel.findById(matchId).session(session);
+      if (!match || match.isDisabled) throw new AppError("This match is not available", 404);
+      const now = new Date();
+      if (
+        now < match.visibleDate ||
+        now < match.startBuyDate ||
+        now > match.endBuyDate ||
+        now > match.matchDate
+      ) {
+        throw new AppError("Ticket sales are not open for this match", 400);
+      }
+      await ensureMatchInventory(match, session);
+      const updatedMatch = await matchModel.findOneAndUpdate(
+        {
+          _id: match._id,
+          ticketTypes: {
+            $elemMatch: {
+              id: ticketTypeId,
+              enabled: true,
+              availableQuantity: { $gte: quantity },
+            },
+          },
+        },
+        {
+          $inc: {
+            "ticketTypes.$.availableQuantity": -quantity,
+            "ticketTypes.$.reservedQuantity": quantity,
+          },
+        },
+        { new: true, session }
+      );
+      if (!updatedMatch) throw new AppError("Not enough tickets are available", 409);
+      const ticketType = updatedMatch.ticketTypes.find((item) => item.id === ticketTypeId);
+      const name = `${req.user.firstname} ${req.user.lastname}`.trim();
+      const [createdBooking] = await bookingModel.create(
+        [
+          {
+            reference: `TKT-${Date.now()}-${crypto.randomBytes(12).toString("hex")}`,
+            user: req.user._id,
+            match: match._id,
+            eventName: match.fixture,
+            eventDate: match.matchDate,
+            ticketTypeId,
+            ticketTypeName: ticketType.name,
+            quantity,
+            unitPrice: ticketType.price,
+            amount: Number((ticketType.price * quantity).toFixed(2)),
+            currency: ticketType.currency,
+            customer: {
+              name,
+              email: req.user.email,
+              ...(phoneNumber ? { phoneNumber } : {}),
+            },
+            status: "pending_payment",
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+          },
+        ],
+        { session }
+      );
+      booking = createdBooking;
+    });
+  } finally {
+    await session.endSession();
+  }
+
+  try {
+    const checkoutUrl = await createCheckout(
+      booking,
+      `${appBaseUrl}/api/payments/flutterwave/return`
+    );
+    booking.paymentUrl = checkoutUrl;
+    await booking.save();
+  } catch (error) {
+    await releaseBooking(booking._id, "failed", "Could not initialize payment");
+    throw error;
+  }
+
+  res.status(201).json({
+    data: {
+      reference: booking.reference,
+      status: booking.status,
+      amount: booking.amount,
+      currency: booking.currency,
+      expiresAt: booking.expiresAt,
+      checkoutUrl: booking.paymentUrl,
+    },
   });
-  match.tickets.push({
-    ticketID: ticket._id,
-    stand: stand.id,
-    userID: req.user.idNumber,
-    userPassportNO: req.user.passportNumber,
-    userMail: req.user.email,
-  });
-  await match.save();
-  req.user.tickets.push({
-    id: ticket._id,
-    price: ticket.price,
-    match: match._id,
-    matchDate: match.matchDate,
-  });
-  await req.user.save();
-  res.status(201).json({ data: ticket });
 });
+
+exports.getBooking = catchAsync(async (req, res) => {
+  const booking = await bookingModel.findOne({
+    reference: req.params.reference,
+    user: req.user._id,
+  }).select("reference eventName eventDate ticketTypeName quantity amount currency status expiresAt");
+  if (!booking) throw new AppError("Booking not found", 404);
+  res.json({ data: booking });
+});
+
+exports.flutterwaveReturn = catchAsync(async (req, res) => {
+  const reference = String(req.query.tx_ref || "");
+  const transactionId = String(req.query.transaction_id || "");
+  const appBaseUrl = String(process.env.APP_BASE_URL || "").replace(/\/$/, "");
+  let resultStatus = "processing";
+  if (reference && transactionId) {
+    try {
+      const booking = await processFlutterwaveTransaction(transactionId, reference);
+      resultStatus = booking?.status === "paid"
+        ? "success"
+        : booking?.status === "paid_after_expiry"
+          ? "support"
+          : booking?.status === "failed" || booking?.status === "expired"
+            ? "failed"
+            : "processing";
+    } catch (error) {
+      resultStatus = "processing";
+    }
+  }
+  res.redirect(
+    `${appBaseUrl}/payment/result?status=${resultStatus}&reference=${encodeURIComponent(reference)}`
+  );
+});
+
+exports.flutterwaveWebhook = catchAsync(async (req, res) => {
+  const expected = String(process.env.FLUTTERWAVE_SECRET_HASH || "");
+  const received = String(req.get("verif-hash") || "");
+  const validSignature = expected && received &&
+    Buffer.byteLength(expected) === Buffer.byteLength(received) &&
+    crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received));
+  if (!validSignature) return res.status(401).end();
+  const transactionId = req.body?.data?.id;
+  const reference = req.body?.data?.tx_ref;
+  if (transactionId && reference) {
+    await processFlutterwaveTransaction(transactionId, reference);
+  }
+  res.status(200).end();
+});
+
+exports.expirePendingBookings = async () => {
+  const expired = await bookingModel.find({
+    status: "pending_payment",
+    expiresAt: { $lte: new Date() },
+  }).select("_id").limit(100);
+  for (const booking of expired) {
+    await releaseBooking(booking._id, "expired", "Payment window expired");
+  }
+};
+
+exports.rejectLegacyTicketPurchase = (req, res) => {
+  res.status(410).json({
+    message: "Direct ticket purchases are disabled. Start a hosted checkout from the match page.",
+  });
+};
 
 const resourceModels = {
   teams: teamModel,
@@ -520,6 +835,18 @@ exports.createResource = catchAsync(async (req, res) => {
       sport: venue.sport,
       slug: makeSlug(`${home.name}-${away.name}-${matchDate.toDateString()}`),
       tickets: [],
+      ticketTypes: venue.stands.map((stand) => ({
+        id: stand.id,
+        name: stand.name || stand.id,
+        location: stand.location,
+        price: stand.price,
+        currency: stand.currency || "USD",
+        quantity: stand.capacity,
+        availableQuantity: stand.capacity,
+        reservedQuantity: 0,
+        soldQuantity: 0,
+        enabled: stand.availablity,
+      })),
     });
     return res.status(201).json({ data: match });
   }

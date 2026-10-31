@@ -33,6 +33,7 @@ const stadiumSchema = new mongoose.Schema(
           trim: true,
           toUpper: true,
         },
+        name: { type: String, trim: true },
         location: {
           type: String,
           required: [true, "each stand must has a stand location"],
@@ -57,12 +58,17 @@ const stadiumSchema = new mongoose.Schema(
           max: [40000, "a stand capacity could not be more than 40000 "],
           min: [1, "a stand must has at least capacity for 1 person"],
         },
-        //note: entry prices are recognzied as USD
         price: {
           type: Number,
           required: [true, "each stand must has a price"],
           min: [0, "stand price could not be lower than 0"],
-          max: [1000, "stand price could not be more than 1000 USD"],
+          max: [1000, "stand price could not be more than 1000 currency units"],
+        },
+        currency: {
+          type: String,
+          default: "USD",
+          uppercase: true,
+          match: /^[A-Z]{3}$/,
         },
         availablity: {
           type: Boolean,
@@ -113,24 +119,26 @@ stadiumSchema.methods.createStands = function (requestBody) {
     }
   });
 
-  //create an empty object of stands
-  let standObj = {
-    id: "",
-    location: "",
-    floor: "",
-    capacity: "",
-    price: "",
-    availablity: "",
-  };
-
   let stands = [];
   //join values together for each stand
   standNumbers.forEach((standNum) => {
+    const standObj = {
+      id: "",
+      name: "",
+      location: "",
+      floor: "",
+      capacity: "",
+      price: "",
+      currency: "USD",
+      availablity: "",
+    };
     standKeys.forEach((key) => {
       if (key.split("_")[1] == standNum) {
         let currentProperty = key.split("_")[2];
         if (currentProperty == "id") {
           standObj.id = requestBody[key];
+        } else if (currentProperty == "name") {
+          standObj.name = requestBody[key];
         } else if (currentProperty == "location") {
           standObj.location = requestBody[key];
         } else if (currentProperty == "floor") {
@@ -138,14 +146,16 @@ stadiumSchema.methods.createStands = function (requestBody) {
         } else if (currentProperty == "capacity") {
           standObj.capacity = requestBody[key];
         } else if (currentProperty == "price") {
-          standObj.price = requestBody[key].replace(/[^0-9]/g, "");
+          standObj.price = String(requestBody[key]).replace(/[^0-9.]/g, "");
+        } else if (currentProperty == "currency") {
+          standObj.currency = requestBody[key];
         } else if (currentProperty == "availablity") {
           standObj.availablity = requestBody[key];
         }
       }
     });
 
-    stands.push({ ...standObj });
+    stands.push({ ...standObj, name: standObj.name || standObj.id });
   });
 
   return stands;

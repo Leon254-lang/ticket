@@ -91,7 +91,10 @@ All new API routes are under `/api` and return JSON. Authentication uses the exi
 | `GET` | `/api/teams`, `/api/stadiums`, `/api/competitions` | Public |
 | `GET` | `/api/uploads/:id` | Public image |
 | `POST` | `/api/admin/uploads` | Admin (PNG, JPEG, WebP, or GIF; 5 MB max) |
-| `POST` | `/api/tickets` | Signed-in |
+| `POST` | `/api/tickets` | Signed-in; starts a server-priced booking and returns a hosted checkout URL |
+| `GET` | `/api/bookings/:reference` | Signed-in owner |
+| `GET` | `/api/payments/flutterwave/return` | Flutterwave redirect callback |
+| `POST` | `/api/payments/flutterwave/webhook` | Flutterwave signed webhook |
 | `GET` | `/api/users/me/tickets`, `/api/dashboard/me` | Signed-in |
 | `GET` | `/api/admin/dashboard`, `/api/admin/users`, `/api/admin/tickets`, `/api/admin/matches` | Admin |
 | `POST` | `/api/contact` | Public |
@@ -105,4 +108,8 @@ Admins can upload team logos and backgrounds, stadium images, competition logos,
 
 ## Email and payments
 
-Email verification and password-reset flows require the `NODE_MAILER_*` settings. Ticket booking checks the match sales window, account verification, identity details, and stand availability. A payment provider is not connected to the booking flow yet.
+Email verification and password-reset flows require the `NODE_MAILER_*` settings. Configure `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_SECRET_HASH`, and `APP_BASE_URL` in the server environment. `APP_BASE_URL` must be the public HTTPS origin of this app, without a trailing slash. Set the same secret hash in the Flutterwave webhook dashboard and point it to `/api/payments/flutterwave/webhook`.
+
+Each new match snapshots its stadium stands into event-specific `ticketTypes` inventory. A stand's `id` and `name` identify its ticket type; `price`, ISO 4217 `currency`, `quantity`, `availableQuantity`, `reservedQuantity`, and `soldQuantity` are stored on the match. Configure a stand in the stadium `stands` JSON, for example `{"id":"A1","name":"West stand","location":"west","floor":"1","capacity":100,"price":25,"currency":"KES","availablity":true}`. Existing matches get their inventory initialized from their stadium the first time match details are read or a booking is started.
+
+The browser sends only the match, ticket type, quantity, and optional phone number. The API reads price and currency from MongoDB, atomically reserves inventory in a MongoDB transaction, and creates a `pending_payment` booking that expires after 10 minutes. A server-side Flutterwave Standard link is then created with a 10-minute checkout window. Tickets are issued only after the callback or signed webhook is verified against the booking reference, amount, and currency. Pending reservations are released by the server expiry worker. If a verified payment arrives after its reservation was released and inventory is gone, the booking is marked `paid_after_expiry` for support/refund handling rather than overselling.

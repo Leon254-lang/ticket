@@ -100,6 +100,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/matches/:id" element={<MatchPage />} />
+          <Route path="/payment/result" element={<PaymentResultPage />} />
           <Route path="/signin" element={<AuthPage mode="login" />} />
           <Route path="/signup" element={<AuthPage mode="signup" />} />
           <Route path="/user/resetpassword" element={<ForgotPasswordPage />} />
@@ -302,16 +303,23 @@ function MatchCard({ match }) {
 
 function MatchPage() {
   const { id } = useParams();
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { loading, data: match, error } = useRequest(`/matches/${encodeURIComponent(id)}`, [id]);
-  const [standId, setStandId] = useState("");
+  const [ticketTypeId, setTicketTypeId] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const stands = (match?.stadium?.stands || []).filter((stand) => stand.availablity);
+  const ticketTypes = (match?.ticketTypes || []).filter(
+    (ticketType) => ticketType.enabled && ticketType.availableQuantity > 0
+  );
   useEffect(() => {
-    if (stands.length && !standId) setStandId(stands[0].id);
+    if (ticketTypes.length && !ticketTypes.some((item) => item.id === ticketTypeId)) {
+      setTicketTypeId(ticketTypes[0].id);
+      setQuantity(1);
+    }
   }, [match]);
 
   const book = async (event) => {
@@ -319,9 +327,11 @@ function MatchPage() {
     setMessage("");
     setBusy(true);
     try {
-      await api("/tickets", { method: "POST", body: { matchId: match._id, standId } });
-      await refreshUser();
-      navigate("/panel/tickets", { state: { notice: "Your booking is confirmed." } });
+      const response = await api("/tickets", {
+        method: "POST",
+        body: { matchId: match._id, ticketTypeId, quantity, phoneNumber },
+      });
+      window.location.assign(response.data.checkoutUrl);
     } catch (requestError) {
       setMessage(requestError.message);
     } finally {
@@ -355,14 +365,54 @@ function MatchPage() {
           <div className="booking-gate"><p>Sign in to choose your seat and book.</p><Link className="button" to="/signin">Sign in to book</Link></div>
         ) : !hasBookingWindow ? (
           <div className="notice notice-info">Ticket sales are not open for this match yet.</div>
-        ) : stands.length ? (
+        ) : ticketTypes.length ? (
           <form className="booking-form" onSubmit={book}>
-            <label className="field"><span>Available stand</span><select value={standId} onChange={(event) => setStandId(event.target.value)}>{stands.map((stand) => <option key={stand.id} value={stand.id}>{stand.id} · {capitalize(stand.location)} · ${stand.price}</option>)}</select></label>
+            <label className="field"><span>Ticket type</span><select value={ticketTypeId} onChange={(event) => { setTicketTypeId(event.target.value); setQuantity(1); }}>{ticketTypes.map((ticketType) => <option key={ticketType.id} value={ticketType.id}>{ticketType.name} · {formatMoney(ticketType.price, ticketType.currency)} · {ticketType.availableQuantity} left</option>)}</select></label>
+            <label className="field"><span>Quantity</span><input type="number" min="1" max={ticketTypes.find((item) => item.id === ticketTypeId)?.availableQuantity || 1} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} required /></label>
+            <label className="field"><span>Phone number for mobile money <small>(optional)</small></span><input type="tel" autoComplete="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="+254…" /></label>
             {message && <div className="notice notice-error">{message}</div>}
-            <button className="button" disabled={busy}>{busy ? "Booking…" : "Book this ticket"} <i className="bi bi-arrow-right" /></button>
+            <button className="button" disabled={busy || !ticketTypeId || quantity < 1}>{busy ? "Starting checkout…" : "Continue to payment"} <i className="bi bi-arrow-right" /></button>
             {!user.verifiedEmail && <p className="form-hint">Email verification is required before booking.</p>}
           </form>
-        ) : <EmptyState title="No stands are available" text="Please check back later." />}
+        ) : <EmptyState title="No tickets are available" text="Please check back later." />}
+      </section>
+    </main>
+  );
+}
+
+function PaymentResultPage() {
+  const [searchParams] = useSearchParams();
+  const reference = searchParams.get("reference") || "";
+  const requestedStatus = searchParams.get("status") || "processing";
+  const { data: booking, loading, error } = useRequest(
+    `/bookings/${encodeURIComponent(reference)}`,
+    [reference]
+  );
+  const status = booking?.status === "paid"
+    ? "success"
+    : booking?.status === "paid_after_expiry"
+      ? "support"
+      : booking?.status === "failed" || booking?.status === "expired"
+        ? "failed"
+        : requestedStatus;
+  const details = {
+    success: ["Payment confirmed", "Your tickets are ready in your account."],
+    failed: ["Payment not completed", "Your ticket reservation has been released. You can try booking again."],
+    support: ["Payment received, booking needs attention", "Your payment arrived after the reservation expired. Contact support with your booking reference."],
+    processing: ["Payment processing", "We are confirming the payment with Flutterwave. Check your tickets in a moment."],
+  }[status] || ["Payment status unavailable", "Check your account for the latest booking status."];
+  return (
+    <main className="page-main auth-page">
+      <section className="surface-card auth-card">
+        <span className="eyebrow">BOOKING {reference}</span>
+        <h1>{details[0]}</h1>
+        <p>{details[1]}</p>
+        {booking && <p>{booking.eventName} · {booking.ticketTypeName} × {booking.quantity} · {formatMoney(booking.amount, booking.currency)}</p>}
+        {loading && <p>Loading booking details…</p>}
+        {error && status === "processing" && <p>{error}</p>}
+        <Link className="button" to={status === "success" ? "/panel/tickets" : "/"}>
+          {status === "success" ? "View my tickets" : "Back to matches"} <i className="bi bi-arrow-right" />
+        </Link>
       </section>
     </main>
   );
@@ -512,7 +562,7 @@ function TicketCard({ ticket }) {
       </div>
       <div className="ticket-card-detail"><span>DATE</span><strong>{Number.isNaN(date.valueOf()) ? "TBA" : date.toLocaleDateString()}</strong></div>
       <div className="ticket-card-detail"><span>STAND</span><strong>{ticket.stand}</strong></div>
-      <div className="ticket-card-detail"><span>PRICE</span><strong>${Number(ticket.price).toFixed(2)}</strong></div>
+      <div className="ticket-card-detail"><span>PRICE</span><strong>{formatMoney(ticket.price, ticket.currency)}</strong></div>
     </article>
   );
 }
@@ -922,7 +972,7 @@ function AdminTable({ resource, rows, onDelete }) {
   );
   if (resource === "tickets") return (
     <div className="table-wrap"><table><thead><tr><th>Match</th><th>Customer</th><th>Stand</th><th>Price</th><th>Purchased</th></tr></thead><tbody>
-      {rows.map((row) => <tr key={row._id}><td>{row.match ? `${row.match.homeTeam?.name} vs ${row.match.awayTeam?.name}` : "Match unavailable"}</td><td>{row.user ? `${row.user.firstname} ${row.user.lastname}` : "Unknown"}</td><td>{row.stand}</td><td>${Number(row.price).toFixed(2)}</td><td>{formatDate(row.purchaseDate)}</td></tr>)}
+      {rows.map((row) => <tr key={row._id}><td>{row.match ? `${row.match.homeTeam?.name} vs ${row.match.awayTeam?.name}` : "Match unavailable"}</td><td>{row.user ? `${row.user.firstname} ${row.user.lastname}` : "Unknown"}</td><td>{row.stand}</td><td>{formatMoney(row.price, row.currency)}</td><td>{formatDate(row.purchaseDate)}</td></tr>)}
     </tbody></table></div>
   );
   const labels = resource === "matches" ? ["Fixture", "Sport", "Venue", "Match date"] : resource === "stadiums" ? ["Name", "Sport", "Location", "Capacity"] : resource === "competitions" ? ["Name", "Logo"] : ["Name", "Sport", "Logo"];
@@ -963,7 +1013,7 @@ function AdminField({ field, value, onChange, related }) {
     return <ImageUploadField field={field} value={value} onChange={onChange} />;
   }
   if (field.type === "checkbox") return <label className="checkbox-field"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /><span>{field.label}</span></label>;
-  return <Field label={field.label} type={field.type || "text"} value={value ?? ""} onChange={onChange} required={field.required} readOnly={field.readOnly} multiline={field.type === "textarea"} hint={field.name === "stands" ? 'Example: [{"id":"A1","location":"west","floor":"1","capacity":100,"price":25,"availablity":true}]' : ""} />;
+  return <Field label={field.label} type={field.type || "text"} value={value ?? ""} onChange={onChange} required={field.required} readOnly={field.readOnly} multiline={field.type === "textarea"} hint={field.name === "stands" ? 'Example: [{"id":"A1","name":"West stand","location":"west","floor":"1","capacity":100,"price":25,"currency":"KES","availablity":true}]' : ""} />;
 }
 
 function ImageUploadField({ field, value, onChange }) {
@@ -1249,6 +1299,13 @@ function toLocalDateTime(value) {
   if (Number.isNaN(date.valueOf())) return "";
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 16);
+}
+
+function formatMoney(value, currency = "USD") {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: String(currency || "USD").toUpperCase(),
+  }).format(Number(value) || 0);
 }
 
 function formatDate(value) {

@@ -28,7 +28,10 @@ router.get("/users/me", api.protect, api.getCurrentUser);
 router.patch("/users/me", api.protect, api.updateProfile);
 router.get("/users/me/tickets", api.protect, api.getMyTickets);
 router.get("/dashboard/me", api.protect, api.getUserDashboard);
-router.post("/tickets", api.protect, api.purchaseTicket);
+router.post("/tickets", api.protect, api.createBooking);
+router.get("/bookings/:reference", api.protect, api.getBooking);
+router.get("/payments/flutterwave/return", api.flutterwaveReturn);
+router.post("/payments/flutterwave/webhook", api.flutterwaveWebhook);
 router.post("/contact", api.submitContactMessage);
 
 router.get("/admin/dashboard", ...admin, api.getAdminDashboard);

@@ -14,6 +14,15 @@ const startApp = async () => {
   console.log("Connecting to MongoDB...");
   await mongoose.connect(connectionString);
   console.log("MongoDB connected.");
+  const { expirePendingBookings } = require("./Controllers/apiController");
+  const expireBookings = () => {
+    expirePendingBookings().catch((error) => {
+      console.error(`Could not expire pending bookings: ${error.message}`);
+    });
+  };
+  expireBookings();
+  const bookingExpiryTimer = setInterval(expireBookings, 30 * 1000);
+  bookingExpiryTimer.unref();
   const port = process.env.PORT || 3000;
   app.listen(port, () => {
     console.log(`Ticketify is listening on port ${port}`);

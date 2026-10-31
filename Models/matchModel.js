@@ -10,6 +10,25 @@ const matchSchema = new mongoose.Schema({
       required: [true, "Each team must have a id!"],
     },
   },
+  ticketTypes: [
+    {
+      id: { type: String, required: true },
+      name: { type: String, required: true },
+      location: { type: String },
+      price: { type: Number, required: true, min: 0 },
+      currency: {
+        type: String,
+        required: true,
+        uppercase: true,
+        match: /^[A-Z]{3}$/,
+      },
+      quantity: { type: Number, required: true, min: 0 },
+      availableQuantity: { type: Number, required: true, min: 0 },
+      reservedQuantity: { type: Number, default: 0, min: 0 },
+      soldQuantity: { type: Number, default: 0, min: 0 },
+      enabled: { type: Boolean, default: true },
+    },
+  ],
   awayTeam: {
     name: { type: String, required: [true, "Each team must have a name!"] },
     logo: { type: String, required: [true, "Each team must have a logo!"] },
