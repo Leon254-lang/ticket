@@ -20,6 +20,12 @@ import api from "./api.js";
 
 const AuthContext = createContext(null);
 const sports = ["football", "basketball", "volleyball"];
+const featuredTicketOptions = [
+  { phase: "Cheapest · Phase 1", location: "Section 416 · Level 3", price: "KSh 2,500" },
+  { phase: "Phase 1", location: "Section 415 · Level 3", price: "KSh 3,500" },
+  { phase: "Phase 1", location: "Sections 414 & 412 · Level 3", price: "KSh 5,000" },
+  { phase: "Phase 1", location: "Sections 207–214", price: "KSh 20,000" },
+];
 const adminSections = [
   ["Dashboard", "/adminpanel/dashboard"],
   ["Users", "/adminpanel/users"],
@@ -147,6 +153,7 @@ function SiteHeader() {
   const location = useLocation();
   const [search, setSearch] = useState("");
   const isLanding = location.pathname === "/";
+  const isMatchPage = location.pathname.startsWith("/matches/");
 
   const logout = async () => {
     try {
@@ -159,7 +166,7 @@ function SiteHeader() {
   };
 
   return (
-    <header className={`site-header${isLanding ? " landing-header" : ""}`}>
+    <header className={`site-header${isLanding ? " landing-header" : ""}${isMatchPage ? " event-header" : ""}`}>
       <Link className="brand" to="/" aria-label="Ticketify home">
         <span className="brand-mark">T</span>
         <span>ticketify<span className="brand-period">.</span></span>
@@ -266,9 +273,9 @@ function HomePage() {
           <div className="talanta-hero-copy">
             <p className="hero-overline">Bayern Munich <span>vs</span> Ajax</p>
             <h1>Bayern Munich <span>vs</span> Ajax</h1>
-            <p className="event-meta">Tue 5 Jan 2027 · Gates open at 11:00</p>
+            <p className="event-meta">Tuesday, 5 January 2027 · Gates open at 11:00 AM</p>
             <p className="event-venue">Raila Odinga International Stadium, Nairobi</p>
-            <div className="ticket-availability">Tickets on sale Thu 5 Nov, 18:00</div>
+            <div className="ticket-availability">Tickets on sale Thursday, 5 November 2026 at 6:00 PM EAT</div>
             <div className="countdown" aria-label="Countdown to event">
               {[
                 ["days", "--"],
@@ -289,6 +296,29 @@ function HomePage() {
             <small>By submitting your email, you also agree for us to send you news and updates about Talanta Sports City.</small>
           </div>
           <div className="talanta-hero-visual" aria-label="Stadium exterior" />
+        </div>
+      </section>
+
+      <section className="featured-ticket-prices" id="ticket-prices" aria-labelledby="featured-ticket-title">
+        <div className="featured-ticket-heading">
+          <div>
+            <span className="section-kicker">Bayern Munich vs Ajax</span>
+            <h2 id="featured-ticket-title">Phase 1 ticket prices</h2>
+          </div>
+          <span className="featured-ticket-currency">Prices in Kenyan shillings</span>
+        </div>
+        <div className="featured-ticket-grid">
+          {featuredTicketOptions.map((option) => (
+            <article className="featured-ticket-card" key={option.location}>
+              <span>{option.phase}</span>
+              <h3>{option.location}</h3>
+              <strong>{option.price}</strong>
+            </article>
+          ))}
+        </div>
+        <div className="featured-ticket-footer">
+          <p>Official event information: <a href="https://talantasportscity.com" target="_blank" rel="noreferrer">talantasportscity.com</a></p>
+          <a className="featured-ticket-booking-link" href="/#matches">Find tickets on Ticketify <i className="bi bi-arrow-up-right" aria-hidden="true" /></a>
         </div>
       </section>
 
@@ -514,12 +544,12 @@ function MatchPage() {
     }
   };
 
-  if (loading) return <main className="page-main"><Loading /></main>;
-  if (error) return <main className="page-main"><ErrorMessage message={error} /><Link className="text-link" to="/">Back to matches</Link></main>;
+  if (loading) return <main className="page-main event-page"><Loading /></main>;
+  if (error) return <main className="page-main event-page"><ErrorMessage message={error} /><Link className="text-link" to="/">Back to matches</Link></main>;
   const matchDate = new Date(match.matchDate);
   const hasBookingWindow = new Date(match.startBuyDate) <= new Date() && new Date(match.endBuyDate) >= new Date();
   return (
-    <main className="page-main">
+    <main className="page-main event-page">
       <div className="breadcrumbs"><Link to="/">Discover</Link><i className="bi bi-chevron-right" /><span>{match.fixture}</span></div>
       <section className="event-hero">
         <div className="event-hero-copy">
