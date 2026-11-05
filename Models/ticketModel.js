@@ -32,6 +32,7 @@ const ticketSchema = new mongoose.Schema({
     match: /^[A-Z]{3}$/,
   },
   booking: { type: mongoose.Types.ObjectId, ref: "bookings" },
+  qrToken: { type: String, unique: true, sparse: true, select: false },
 });
 
 //this method will check available capacity for the stand

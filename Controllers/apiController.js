@@ -1,6 +1,8 @@
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
+const PDFDocument = require("pdfkit");
+const QRCode = require("qrcode");
 const { promisify } = require("util");
 const userModel = require("../Models/userModel");
 const matchModel = require("../Models/matchModel");
@@ -517,6 +519,54 @@ exports.getMyTickets = catchAsync(async (req, res) => {
   res.json({ data: tickets.filter((ticket) => ticket.match) });
 });
 
+exports.downloadTicket = catchAsync(async (req, res) => {
+  let ticket = await ticketModel.findOne({
+    _id: req.params.id,
+    user: req.user._id,
+  }).select("+qrToken").populate("match", "fixture matchDate homeTeam awayTeam")
+    .populate("booking", "reference status customer");
+  if (!ticket) throw new AppError("Ticket not found", 404);
+  if (ticket.booking && ticket.booking.status !== "paid") {
+    throw new AppError("A ticket is available only after payment is confirmed", 403);
+  }
+  if (!ticket.qrToken) {
+    const qrToken = crypto.randomBytes(32).toString("hex");
+    await ticketModel.updateOne(
+      { _id: ticket._id, qrToken: { $exists: false } },
+      { $set: { qrToken } }
+    );
+    ticket = await ticketModel.findById(ticket._id).select("+qrToken")
+      .populate("match", "fixture matchDate homeTeam awayTeam")
+      .populate("booking", "reference status customer");
+  }
+
+  const qrImage = await QRCode.toBuffer(ticket.qrToken, {
+    type: "png",
+    errorCorrectionLevel: "H",
+    margin: 1,
+    width: 240,
+  });
+  const fileName = `Ticketify-${ticket._id}.pdf`;
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+
+  const document = new PDFDocument({ size: "A4", margin: 48 });
+  document.pipe(res);
+  document.fontSize(24).text("TICKETIFY", { continued: true });
+  document.fontSize(10).text("  ADMISSION TICKET", { align: "right" });
+  document.moveDown(2);
+  document.fontSize(20).text(ticket.match?.fixture || "Event ticket");
+  document.moveDown(0.7);
+  document.fontSize(12).text(`Date: ${ticket.match?.matchDate ? new Date(ticket.match.matchDate).toLocaleString() : "To be announced"}`);
+  document.text(`Ticket type: ${ticket.stand}`);
+  document.text(`Price: ${ticket.currency} ${ticket.price.toFixed(2)}`);
+  document.text(`Ticket ID: ${ticket._id}`);
+  if (ticket.booking?.reference) document.text(`Booking reference: ${ticket.booking.reference}`);
+  document.image(qrImage, 48, 340, { width: 180 });
+  document.fontSize(9).text("Present this QR code at the venue.", 48, 535);
+  document.end();
+});
+
 const releaseBooking = async (bookingId, status, reason, transactionId) => {
   const session = await mongoose.startSession();
   let released = false;
@@ -636,6 +686,7 @@ const completeDarajaPayment = async (booking, transactionId) => {
         price: current.unitPrice,
         currency: current.currency,
         booking: current._id,
+        qrToken: crypto.randomBytes(32).toString("hex"),
       }));
       const tickets = await ticketModel.create(ticketData, { session });
       const matchEntries = tickets.map((ticket) => ({

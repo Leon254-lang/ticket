@@ -325,6 +325,8 @@ function MatchPage() {
   const ticketTypes = availableTicketTypes.filter(
     (ticketType) => ticketType.currency === "KES" && Number.isSafeInteger(ticketType.price)
   );
+  const selectedTicketType = ticketTypes.find((item) => item.id === ticketTypeId);
+  const estimatedTotal = selectedTicketType ? selectedTicketType.price * quantity : 0;
   useEffect(() => {
     if (ticketTypes.length && !ticketTypes.some((item) => item.id === ticketTypeId)) {
       setTicketTypeId(ticketTypes[0].id);
@@ -377,43 +379,82 @@ function MatchPage() {
   const hasBookingWindow = new Date(match.startBuyDate) <= new Date() && new Date(match.endBuyDate) >= new Date();
   return (
     <main className="page-main">
-      <div className="breadcrumbs"><Link to="/">Discover</Link><i className="bi bi-chevron-right" /><span>Match details</span></div>
-      <section className="match-detail">
-        <div className="match-detail-copy">
-          <span className="eyebrow">{capitalize(match.sport)}{match.competition?.name ? ` · ${match.competition.name}` : ""}</span>
-          <h1>{match.homeTeam.name}<em> vs </em>{match.awayTeam.name}</h1>
-          <p className="match-lead">Be there for every moment. Find your place in the crowd.</p>
-          <div className="match-facts">
-            <div><i className="bi bi-calendar-event" /><span>DATE</span><strong>{Number.isNaN(matchDate.valueOf()) ? "To be announced" : matchDate.toLocaleString()}</strong></div>
-            <div><i className="bi bi-geo-alt" /><span>VENUE</span><strong>{match.stadium?.name || "To be announced"}{match.stadium?.city ? `, ${match.stadium.city}` : ""}</strong></div>
-            <div><i className="bi bi-ticket-perforated" /><span>FIXTURE</span><strong>{match.fixture}</strong></div>
+      <div className="breadcrumbs"><Link to="/">Discover</Link><i className="bi bi-chevron-right" /><span>{match.fixture}</span></div>
+      <section className="event-hero">
+        <div className="event-hero-copy">
+          <span className="eyebrow">{match.competition?.name || capitalize(match.sport)}</span>
+          <h1>{match.homeTeam.name}<span> vs </span>{match.awayTeam.name}</h1>
+          <p className="event-hero-lead">Match tickets</p>
+          <div className="event-meta">
+            <div><i className="bi bi-calendar-event" /><span>{Number.isNaN(matchDate.valueOf()) ? "Date to be announced" : matchDate.toLocaleString()}</span></div>
+            <div><i className="bi bi-geo-alt" /><span>{match.stadium?.name || "Venue to be announced"}{match.stadium?.city ? ` · ${match.stadium.city}` : ""}</span></div>
+            <div><i className="bi bi-trophy" /><span>{capitalize(match.sport)}</span></div>
           </div>
+          <a className="button event-hero-cta" href="#ticket-options">View ticket prices <i className="bi bi-arrow-down" /></a>
         </div>
-        {match.cover && <img className="match-detail-cover" src={imageUrl(match.cover, "matches")} alt={`${match.homeTeam.name} vs ${match.awayTeam.name}`} />}
+        <div className="event-hero-media">
+          {match.cover ? <img src={imageUrl(match.cover, "matches")} alt={`${match.homeTeam.name} vs ${match.awayTeam.name}`} /> : <div className="event-image-fallback"><i className="bi bi-trophy" /><span>{match.fixture}</span></div>}
+          <span className="event-media-label">{match.fixture}</span>
+        </div>
       </section>
-      <section className="booking-panel">
-        <div><span className="eyebrow">YOUR MATCH DAY</span><h2>Choose your stand</h2><p>Select the place you want to experience the game from.</p></div>
-        {!user ? (
-          <div className="booking-gate"><p>Sign in to choose your seat and book.</p><Link className="button" to="/signin">Sign in to book</Link></div>
-        ) : !hasBookingWindow ? (
-          <div className="notice notice-info">Ticket sales are not open for this match yet.</div>
-        ) : ticketTypes.length ? (
-          <form className="booking-form" onSubmit={book}>
-            <label className="field"><span>Ticket type</span><select value={ticketTypeId} onChange={(event) => { setTicketTypeId(event.target.value); setQuantity(1); }}>{ticketTypes.map((ticketType) => <option key={ticketType.id} value={ticketType.id}>{ticketType.name} · {formatMoney(ticketType.price, ticketType.currency)} · {ticketType.availableQuantity} left</option>)}</select></label>
-            <label className="field"><span>Quantity</span><input type="number" min="1" max={ticketTypes.find((item) => item.id === ticketTypeId)?.availableQuantity || 1} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} required /></label>
-            <label className="field"><span>M-Pesa phone number</span><input type="tel" autoComplete="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="07XX XXX XXX or 2547XX XXX XXX" required /></label>
-            <label className="field"><span>National ID number</span><input type="text" autoComplete="off" value={idNumber} onChange={(event) => setIdNumber(event.target.value)} maxLength={32} placeholder="Enter your national ID" /></label>
-            <label className="field"><span>Passport number</span><input type="text" autoComplete="off" value={passportNumber} onChange={(event) => setPassportNumber(event.target.value)} maxLength={32} placeholder="Enter your passport number" /></label>
-            <p className="form-hint">Enter either your national ID or passport number. It will be saved to your account.</p>
-            <p className="form-hint">We’ll send an M-Pesa payment prompt to this number. Enter your M-Pesa PIN on your phone.</p>
-            {message && <div className="notice notice-error">{message}</div>}
-            <button className="button" disabled={busy || !ticketTypeId || quantity < 1}>{busy ? "Sending M-Pesa prompt…" : "Pay with M-Pesa"} <i className="bi bi-arrow-right" /></button>
-            {!user.verifiedEmail && <p className="form-hint">Email verification is required before booking.</p>}
-          </form>
-        ) : availableTicketTypes.length ? (
-          <div className="notice notice-info">M-Pesa checkout is available for whole-number ticket prices in KES.</div>
-        ) : <EmptyState title="No tickets are available" text="Please check back later." />}
-      </section>
+      <div className="event-purchase-grid" id="ticket-options">
+        <section className="ticket-options-section">
+          <div className="ticket-section-heading">
+            <div><span className="eyebrow">PLAN YOUR VISIT</span><h2>Ticket prices</h2></div>
+            <span className="ticket-currency">Prices in KES</span>
+          </div>
+          {!ticketTypes.length ? (
+            availableTicketTypes.length ? <div className="notice notice-info">Online checkout is currently available for whole-number prices in KES.</div> : <EmptyState title="No tickets are available" text="Please check back later." />
+          ) : (
+            <div className="ticket-option-list" role="group" aria-label="Choose a ticket type">
+              {ticketTypes.map((ticketType) => (
+                <button
+                  className={`ticket-option${ticketTypeId === ticketType.id ? " is-selected" : ""}`}
+                  key={ticketType.id}
+                  type="button"
+                  aria-pressed={ticketTypeId === ticketType.id}
+                  onClick={() => { setTicketTypeId(ticketType.id); setQuantity(1); }}
+                >
+                  <span className="ticket-option-mark"><i className="bi bi-check2" /></span>
+                  <span className="ticket-option-copy"><strong>{ticketType.name}</strong><small>{ticketType.location || "General admission"} · {ticketType.availableQuantity} available</small></span>
+                  <strong className="ticket-option-price">{formatMoney(ticketType.price, ticketType.currency)}</strong>
+                </button>
+              ))}
+            </div>
+          )}
+          <section className="ticket-information">
+            <span className="eyebrow">TICKET INFORMATION</span>
+            <ul>
+              <li>Tickets are issued after payment is confirmed.</li>
+              <li>Have your booking QR code ready when you arrive.</li>
+              <li>Ticket availability can change while you are booking.</li>
+            </ul>
+          </section>
+        </section>
+        <aside className="checkout-panel">
+          <span className="eyebrow">SECURE CHECKOUT</span>
+          <h2>Book your tickets</h2>
+          {!user ? (
+            <div className="checkout-gate"><p>Sign in to select tickets and continue to payment.</p><Link className="button button-full" to="/signin">Sign in to book <i className="bi bi-arrow-right" /></Link></div>
+          ) : !hasBookingWindow ? (
+            <div className="notice notice-info">Ticket sales are not open for this match yet.</div>
+          ) : ticketTypes.length ? (
+            <form className="checkout-form" onSubmit={book}>
+              <div className="checkout-selection"><span>{selectedTicketType?.name || "Select a ticket type"}</span><strong>{selectedTicketType ? formatMoney(selectedTicketType.price, selectedTicketType.currency) : "—"}</strong></div>
+              <label className="field"><span>Quantity</span><input type="number" min="1" max={selectedTicketType?.availableQuantity || 1} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} required /></label>
+              <label className="field"><span>M-Pesa phone number</span><input type="tel" autoComplete="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="07XX XXX XXX or 2547XX XXX XXX" required /></label>
+              <label className="field"><span>National ID number</span><input type="text" autoComplete="off" value={idNumber} onChange={(event) => setIdNumber(event.target.value)} maxLength={32} placeholder="Enter your national ID" /></label>
+              <label className="field"><span>Passport number</span><input type="text" autoComplete="off" value={passportNumber} onChange={(event) => setPassportNumber(event.target.value)} maxLength={32} placeholder="Enter your passport number" /></label>
+              <p className="checkout-hint">Enter either your national ID or passport number. It will be saved to your account.</p>
+              {!user.verifiedEmail && <p className="checkout-hint">Email verification is required before booking.</p>}
+              <div className="checkout-total"><span>Estimated total</span><strong>{formatMoney(estimatedTotal, selectedTicketType?.currency || "KES")}</strong></div>
+              {message && <div className="notice notice-error">{message}</div>}
+              <p className="checkout-payment-note"><i className="bi bi-phone" /> Pay securely with M-Pesa. A prompt will be sent to your phone.</p>
+              <button className="button button-full" disabled={busy || !ticketTypeId || quantity < 1}>{busy ? "Sending M-Pesa prompt…" : "Continue to payment"} <i className="bi bi-arrow-right" /></button>
+            </form>
+          ) : null}
+        </aside>
+      </div>
     </main>
   );
 }
@@ -457,6 +498,9 @@ function PaymentResultPage() {
                 <div className="ticket-card-detail">
                   <span>TICKET ID</span>
                   <strong>{ticketId}</strong>
+                  <a className="ticket-download" href={`/api/tickets/${encodeURIComponent(ticketId)}/download`}>
+                    <i className="bi bi-download" /> Download PDF
+                  </a>
                 </div>
               </article>
             ))}
@@ -617,7 +661,7 @@ function TicketCard({ ticket }) {
       <div className="ticket-card-detail"><span>DATE</span><strong>{Number.isNaN(date.valueOf()) ? "TBA" : date.toLocaleDateString()}</strong></div>
       <div className="ticket-card-detail"><span>STAND</span><strong>{ticket.stand}</strong></div>
       <div className="ticket-card-detail"><span>PRICE</span><strong>{formatMoney(ticket.price, ticket.currency)}</strong></div>
-      <div className="ticket-card-detail"><span>TICKET ID</span><strong>{ticket._id}</strong></div>
+      <div className="ticket-card-detail"><span>TICKET ID</span><strong>{ticket._id}</strong><a className="ticket-download" href={`/api/tickets/${encodeURIComponent(ticket._id)}/download`}><i className="bi bi-download" /> Download PDF</a></div>
     </article>
   );
 }

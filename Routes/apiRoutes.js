@@ -27,10 +27,10 @@ router.get("/uploads/:id", uploads.getImage);
 router.get("/users/me", api.protect, api.getCurrentUser);
 router.patch("/users/me", api.protect, api.updateProfile);
 router.get("/users/me/tickets", api.protect, api.getMyTickets);
+router.get("/tickets/:id/download", api.protect, api.downloadTicket);
 router.get("/dashboard/me", api.protect, api.getUserDashboard);
 router.post("/tickets", api.protect, api.createBooking);
 router.get("/bookings/:reference", api.protect, api.getBooking);
-router.post("/mpesa/callback", api.darajaCallback);
 router.post("/contact", api.submitContactMessage);
 
 router.get("/admin/dashboard", ...admin, api.getAdminDashboard);
