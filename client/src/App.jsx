@@ -219,62 +219,69 @@ function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const sport = searchParams.get("sport") || "all";
   const search = searchParams.get("search") || "";
+  const [searchText, setSearchText] = useState(search);
   const query = new URLSearchParams({ sport, search, limit: "50" }).toString();
   const { loading, data, error } = useRequest(`/matches?${query}`, [query]);
   const matches = Array.isArray(data) ? data : data?.data || [];
+  const categories = [
+    ["all", "All events", "bi-grid"],
+    ["football", "Football", "bi-dribbble"],
+    ["basketball", "Basketball", "bi-circle"],
+    ["volleyball", "Volleyball", "bi-activity"],
+  ];
+
+  useEffect(() => setSearchText(search), [search]);
+
+  const updateFilters = (nextSport, nextSearch = search) => {
+    const params = {};
+    if (nextSport !== "all") params.sport = nextSport;
+    if (nextSearch) params.search = nextSearch;
+    setSearchParams(params);
+  };
 
   return (
-    <main>
-      <section className="hero-section">
-        <div className="hero-copy">
-          <span className="eyebrow"><span className="eyebrow-dot" /> THE GAME IS BETTER LIVE</span>
-          <h1>Make room for<br /><em>the moment.</em></h1>
-          <p>Find your next unforgettable match. Great seats, electric crowds, and memories that stay with you.</p>
-          <a className="button" href="#matches">Explore upcoming matches <i className="bi bi-arrow-down-right" /></a>
-          <div className="hero-note"><span className="avatar-stack"><b>J</b><b>M</b><b>A</b></span><span>Fans are finding their next big day out</span></div>
+    <main className="marketplace-home">
+      <section className="market-hero">
+        <div className="market-hero-copy">
+          <span className="market-eyebrow"><span /> TICKETIFY LIVE</span>
+          <h1>Find your next<br /><em>live moment.</em></h1>
+          <p>Big games. Great seats. Your next day out starts here.</p>
         </div>
-        <div className="hero-art" aria-label="A night match in a full stadium">
-          <div className="hero-art-glow" />
-          <div className="hero-art-card">
-            <span className="live-tag"><span /> MATCH DAY</span>
-            <div className="hero-score">
-              <div><span className="team-crest crest-blue">FC</span><b>FC Barcelona</b></div>
-              <span className="versus">VS</span>
-              <div><span className="team-crest crest-gold">RM</span><b>Real Madrid</b></div>
-            </div>
-            <div className="hero-art-bottom"><span><i className="bi bi-geo-alt" /> Estadi Olímpic</span><span>THE CLASSIC</span></div>
-          </div>
-          <span className="floating-ticket"><i className="bi bi-ticket-perforated" /> Your seat is waiting</span>
-          <span className="hero-orbit orbit-one" /><span className="hero-orbit orbit-two" />
+        <form className="market-search" onSubmit={(event) => { event.preventDefault(); updateFilters(sport, searchText.trim()); }}>
+          <i className="bi bi-search" />
+          <input
+            aria-label="Search events"
+            placeholder="Search teams, matches, or venues"
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+          />
+          <button type="submit">Search <i className="bi bi-arrow-right" /></button>
+        </form>
+        <div className="market-category-list" role="group" aria-label="Filter events by sport">
+          {categories.map(([value, label, icon]) => (
+            <button
+              className={`market-category${sport === value ? " is-active" : ""}`}
+              key={value}
+              type="button"
+              aria-pressed={sport === value}
+              onClick={() => updateFilters(value)}
+            >
+              <i className={`bi ${icon}`} />{label}
+            </button>
+          ))}
         </div>
       </section>
-      <section className="trust-strip">
-        <span>YOUR NEXT GREAT DAY OUT STARTS HERE</span>
-        <div><i className="bi bi-shield-check" /> Secure booking</div>
-        <div><i className="bi bi-lightning-charge" /> Instant confirmation</div>
-        <div><i className="bi bi-heart" /> Made for fans</div>
-      </section>
-      <section className="content-section" id="matches">
+      <section className="content-section event-section" id="matches">
         <div className="section-heading">
-          <div><span className="eyebrow">FIND YOUR FIXTURE</span><h2>Coming up next</h2></div>
-          <label className="filter-select">
-            <span className="sr-only">Filter by sport</span>
-            <select value={sport} onChange={(event) => setSearchParams({ sport: event.target.value, search })}>
-              <option value="all">All sports</option>
-              {sports.map((item) => <option key={item} value={item}>{capitalize(item)}</option>)}
-            </select>
-          </label>
+          <div><span className="eyebrow">THE LIVE LINEUP</span><h2>{search ? "Search results" : "Upcoming events"}</h2></div>
+          {!loading && !error && matches.length > 0 && <span className="event-count">{matches.length} {matches.length === 1 ? "event" : "events"}</span>}
         </div>
-        {search && <p className="results-note">Showing results for <strong>{search}</strong> <button className="inline-button" onClick={() => setSearchParams(sport === "all" ? {} : { sport })}>Clear</button></p>}
+        {search && <p className="results-note">Showing results for <strong>{search}</strong> <button className="inline-button" onClick={() => { setSearchText(""); updateFilters(sport, ""); }}>Clear search</button></p>}
         {loading ? <Loading /> : error ? <ErrorMessage message={error} /> : matches.length ? (
           <div className="match-grid">{matches.map((match) => <MatchCard key={match._id} match={match} />)}</div>
         ) : (
-          <EmptyState title="No upcoming matches yet" text="Try another sport or check back soon for new fixtures." />
+          <EmptyState title="No events found" text="Try another sport or search for a different team or venue." />
         )}
-      </section>
-      <section className="closing-banner">
-        <div><span className="eyebrow">MAKE IT A DAY TO REMEMBER</span><h2>The best seat in the house<br />is the one you’re in.</h2></div>
-        <a className="button button-light" href="#matches">Find your match <i className="bi bi-arrow-up-right" /></a>
       </section>
     </main>
   );
