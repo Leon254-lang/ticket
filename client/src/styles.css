@@ -604,7 +604,7 @@ h1, h2, h3, .brand { font-family: "Manrope", sans-serif; }
 .site-footer > div { display: flex; gap: 24px; }
 .site-footer a:hover { color: #293857; }
 
-.page-main { width: min(1120px, calc(100% - 48px)); margin: 0 auto; padding: 35px 0 70px; }
+.page-main { width: min(1160px, calc(100% - 48px)); margin: 0 auto; padding: 35px 0 70px; }
 .breadcrumbs { display: flex; align-items: center; gap: 9px; margin-bottom: 26px; color: #929aac; font-size: 10px; }
 .breadcrumbs a { color: #58647c; font-weight: 700; }
 .match-detail { display: grid; grid-template-columns: 1fr .85fr; align-items: center; gap: 40px; padding: 35px; border-radius: 20px; background: #fff; box-shadow: 0 8px 30px #17223b08; }
