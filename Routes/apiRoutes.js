@@ -9,6 +9,7 @@ const admin = [api.protect, api.requireAdmin];
 router.post("/auth/signup", api.signup);
 router.post("/auth/login", api.login);
 router.post("/auth/logout", api.protect, api.logout);
+router.post("/mpesa/callback", api.darajaCallback);
 router.post("/auth/forgot-password", api.forgotPassword);
 router.post("/auth/reset-password/:token", api.resetPassword);
 router.get("/auth/me", api.protect, api.getCurrentUser);
