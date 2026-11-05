@@ -99,6 +99,9 @@ function App() {
         <SiteHeader />
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/football" element={<SportEventsPage sport="football" />} />
+          <Route path="/basketball" element={<SportEventsPage sport="basketball" />} />
+          <Route path="/volleyball" element={<SportEventsPage sport="volleyball" />} />
           <Route path="/matches/:id" element={<MatchPage />} />
           <Route path="/payment/result" element={<PaymentResultPage />} />
           <Route path="/signin" element={<AuthPage mode="login" />} />
@@ -165,7 +168,7 @@ function SiteHeader() {
           <span>Sports <i className="bi bi-chevron-down" /></span>
           <div className="sports-menu-panel">
             {sports.map((sport) => (
-              <Link key={sport} to={`/?sport=${sport}`}>{capitalize(sport)}</Link>
+              <Link key={sport} to={`/${sport}`}>{capitalize(sport)}</Link>
             ))}
           </div>
         </div>
@@ -257,19 +260,18 @@ function HomePage() {
           />
           <button type="submit">Search <i className="bi bi-arrow-right" /></button>
         </form>
-        <div className="market-category-list" role="group" aria-label="Filter events by sport">
+        <nav className="market-category-list" aria-label="Browse events by sport">
           {categories.map(([value, label, icon]) => (
-            <button
+            <Link
               className={`market-category${sport === value ? " is-active" : ""}`}
               key={value}
-              type="button"
-              aria-pressed={sport === value}
-              onClick={() => updateFilters(value)}
+              to={value === "all" ? "/" : `/${value}`}
+              aria-current={sport === value ? "page" : undefined}
             >
               <i className={`bi ${icon}`} />{label}
-            </button>
+            </Link>
           ))}
-        </div>
+        </nav>
       </section>
       <section className="content-section event-section" id="matches">
         <div className="section-heading">
@@ -287,8 +289,83 @@ function HomePage() {
   );
 }
 
+function SportEventsPage({ sport }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const search = searchParams.get("search") || "";
+  const [searchText, setSearchText] = useState(search);
+  const query = new URLSearchParams({ sport, search, limit: "50" }).toString();
+  const { loading, data, error } = useRequest(`/matches?${query}`, [query]);
+  const matches = Array.isArray(data) ? data : data?.data || [];
+  const title = capitalize(sport);
+  const categories = [
+    ["all", "All events", "bi-grid"],
+    ["football", "Football", "bi-dribbble"],
+    ["basketball", "Basketball", "bi-circle"],
+    ["volleyball", "Volleyball", "bi-activity"],
+  ];
+
+  useEffect(() => setSearchText(search), [search]);
+
+  const submitSearch = (event) => {
+    event.preventDefault();
+    const value = searchText.trim();
+    setSearchParams(value ? { search: value } : {});
+  };
+
+  return (
+    <main className="marketplace-home sport-events-page">
+      <section className="market-hero sport-market-hero">
+        <div className="sport-page-breadcrumb"><Link to="/">All events</Link><i className="bi bi-chevron-right" /><span>{title}</span></div>
+        <div className="market-hero-copy">
+          <span className="market-eyebrow"><span /> TICKETIFY LIVE · {title.toUpperCase()}</span>
+          <h1>{title} <em>tickets.</em></h1>
+          <p>Find upcoming {sport} fixtures, compare match details, and book your tickets.</p>
+        </div>
+        <form className="market-search" onSubmit={submitSearch}>
+          <i className="bi bi-search" />
+          <input
+            aria-label={`Search ${sport} events`}
+            placeholder="Search teams, matches, or venues"
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+          />
+          <button type="submit">Search <i className="bi bi-arrow-right" /></button>
+        </form>
+        <nav className="market-category-list" aria-label="Browse events by sport">
+          {categories.map(([value, label, icon]) => (
+            <Link
+              className={`market-category${sport === value ? " is-active" : ""}`}
+              key={value}
+              to={value === "all" ? "/" : `/${value}`}
+              aria-current={sport === value ? "page" : undefined}
+            >
+              <i className={`bi ${icon}`} />{label}
+            </Link>
+          ))}
+        </nav>
+      </section>
+      <section className="content-section event-section" id="matches">
+        <div className="section-heading">
+          <div><span className="eyebrow">BROWSE {title.toUpperCase()}</span><h2>{search ? "Search results" : `Upcoming ${sport} events`}</h2></div>
+          {!loading && !error && matches.length > 0 && <span className="event-count">{matches.length} {matches.length === 1 ? "event" : "events"}</span>}
+        </div>
+        {search && <p className="results-note">Showing results for <strong>{search}</strong> <button className="inline-button" onClick={() => { setSearchText(""); setSearchParams({}); }}>Clear search</button></p>}
+        {loading ? <Loading /> : error ? <ErrorMessage message={error} /> : matches.length ? (
+          <div className="match-grid">{matches.map((match) => <MatchCard key={match._id} match={match} />)}</div>
+        ) : (
+          <EmptyState title={`No ${sport} events found`} text="Try another team or venue, or browse a different sport." action={<Link className="button" to="/">Browse all events</Link>} />
+        )}
+      </section>
+    </main>
+  );
+}
+
 function MatchCard({ match }) {
   const matchDate = match.matchDate ? new Date(match.matchDate) : null;
+  const ticketPrices = (match.ticketTypes || [])
+    .filter((ticketType) => ticketType.enabled !== false && ticketType.price >= 0)
+    .map((ticketType) => ticketType.price);
+  const startingPrice = ticketPrices.length ? Math.min(...ticketPrices) : null;
   return (
     <article className="match-card">
       <Link to={`/matches/${match.slug || match._id}`} className="match-card-link">
@@ -301,7 +378,7 @@ function MatchCard({ match }) {
           <span className="card-kicker">{match.competition?.name || match.fixture || "Upcoming fixture"}</span>
           <div className="card-teams"><strong>{match.homeTeam?.name || "Home team"}</strong><span>vs</span><strong>{match.awayTeam?.name || "Away team"}</strong></div>
           <p><i className="bi bi-geo-alt" /> {match.stadium?.name || "Venue to be announced"}{match.stadium?.city ? ` · ${match.stadium.city}` : ""}</p>
-          <div className="match-card-cta">View match <i className="bi bi-arrow-up-right" /></div>
+          <div className="match-card-cta"><span>{startingPrice === null ? "Ticket details" : `From ${formatMoney(startingPrice, match.ticketTypes.find((item) => item.price === startingPrice)?.currency || "KES")}`}</span><strong>Tickets <i className="bi bi-arrow-up-right" /></strong></div>
         </div>
       </Link>
     </article>
