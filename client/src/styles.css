@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700;800;900&display=swap');
+
 :root {
   font-family: "DM Sans", sans-serif;
   color: #17213b;
@@ -13,11 +15,455 @@
   --line: #e7eaf0;
   --surface: #fff;
   --radius: 18px;
+  --bg: #f6f4f0;
+  --night: #0e0c10;
+  --night-2: #1a1720;
+  --night-ink: #f5f1ea;
+  --night-body: #cfc7bb;
+  --primary: #0a7a3d;
+  --primary-hover: #08652f;
+  --accent: #be0000;
 }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; background: #f7f8fb; color: var(--ink); }
+
+.talanta-home {
+  background: var(--bg);
+  color: #14121a;
+  font-family: "Barlow", "Segoe UI", sans-serif;
+}
+
+.landing-header {
+  position: absolute;
+  inset: 0 0 auto;
+  background: rgba(14, 12, 16, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.landing-header .brand,
+.landing-header .main-nav a,
+.landing-header .text-link,
+.landing-header .header-actions .button,
+.landing-header .button-small {
+  color: #fff;
+}
+
+.landing-header .brand {
+  color: #fff;
+}
+
+.landing-header .brand-mark {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(190, 0, 0, 0.35);
+}
+
+.landing-header .main-nav {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.landing-header .main-nav a:hover,
+.landing-header .text-link:hover { color: #fff; }
+
+.landing-header .button.button-small {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 12px 30px rgba(190, 0, 0, 0.25);
+}
+
+.landing-header .button.button-small:hover {
+  background: #ca0917;
+  border-color: #ca0917;
+}
+
+.talanta-hero {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(90deg, rgba(14, 12, 16, 0.88), rgba(14, 12, 16, 0.42) 38%, rgba(14, 12, 16, 0.64) 100%),
+    url('https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1500&q=80') center/cover no-repeat;
+  color: var(--night-ink);
+}
+
+.talanta-hero-inner {
+  width: min(1160px, calc(100% - 40px));
+  min-height: min(92vh, 760px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 36px;
+  align-items: end;
+  padding: 120px 0 52px;
+}
+
+.talanta-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 620px;
+}
+
+.hero-overline,
+.section-kicker {
+  margin: 0 0 16px;
+  color: rgba(245, 241, 234, 0.78);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.talanta-hero-copy h1 {
+  margin: 0;
+  color: #fff;
+  font-family: "Anton", Impact, sans-serif;
+  font-size: clamp(3.1rem, 5vw, 6.1rem);
+  line-height: 0.92;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+}
+
+.talanta-hero-copy h1 span {
+  display: inline-block;
+  margin: 0 10px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.event-meta,
+.event-venue,
+.ticket-availability,
+.notify-form small {
+  margin: 0;
+  color: rgba(245, 241, 234, 0.8);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.event-meta {
+  margin-top: 18px;
+  font-weight: 600;
+}
+
+.event-venue {
+  margin-top: 8px;
+  font-size: 1.05rem;
+  color: rgba(245, 241, 234, 0.9);
+}
+
+.ticket-availability {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  margin-top: 20px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  font-weight: 600;
+}
+
+.countdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.countdown-box {
+  min-width: 74px;
+  text-align: center;
+  padding: 14px 12px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.countdown-box strong {
+  display: block;
+  font-size: clamp(1.5rem, 2.8vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown-box span {
+  display: block;
+  margin-top: 6px;
+  color: rgba(245, 241, 234, 0.72);
+  font-size: 0.68rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.notify-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+  max-width: 500px;
+}
+
+.notify-form input {
+  flex: 1;
+  min-height: 52px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+  padding: 0 18px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 0.96rem;
+}
+
+.notify-form input::placeholder {
+  color: rgba(245,241,234,0.65);
+}
+
+.notify-form button,
+.inline-link {
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  transition: transform .18s ease, background .18s ease;
+}
+
+.notify-form button {
+  min-height: 52px;
+  padding: 0 22px;
+}
+
+.notify-form button:hover,
+.inline-link:hover { transform: translateY(-1px); background: #ca0917; }
+
+.notify-form small {
+  display: block;
+  margin-top: 12px;
+  max-width: 480px;
+  font-size: 0.72rem;
+  color: rgba(245, 241, 234, 0.7);
+}
+
+.talanta-hero-visual {
+  transform: translateY(16px);
+  min-height: 420px;
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(14,12,16,0.12), rgba(14,12,16,0.55)),
+    url('https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
+  box-shadow: 0 40px 70px rgba(0,0,0,0.32);
+}
+
+.stadium-showcase,
+.faq-panel,
+.content-section {
+  width: min(1160px, calc(100% - 40px));
+  margin: 0 auto;
+}
+
+.stadium-showcase {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 32px;
+  align-items: center;
+  padding: 80px 0 40px;
+}
+
+.stadium-showcase-media {
+  min-height: 420px;
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(20,18,26,0.12), rgba(20,18,26,0.4)),
+    url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
+  box-shadow: 0 26px 54px rgba(17, 15, 19, 0.18);
+}
+
+.stadium-showcase-copy {
+  padding: 12px 0;
+}
+
+.section-kicker {
+  color: var(--primary);
+  margin-bottom: 10px;
+  font-size: 0.7rem;
+}
+
+.stadium-showcase-copy h2 {
+  margin: 0 0 12px;
+  font-size: clamp(2.2rem, 4vw, 3.25rem);
+  letter-spacing: -0.05em;
+  font-weight: 800;
+  color: #14121a;
+  line-height: 1;
+}
+
+.stadium-showcase-copy p {
+  max-width: 540px;
+  margin: 0;
+  color: #4e4955;
+  font-size: 1.04rem;
+  line-height: 1.75;
+}
+
+.stadium-facts {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 28px 0 26px;
+  padding: 0;
+}
+
+.stadium-facts li {
+  padding: 18px 16px 14px;
+  border: 1px solid rgba(20,18,26,0.08);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.7);
+}
+
+.stadium-facts strong {
+  display: block;
+  font-size: 1.7rem;
+  line-height: 1;
+  font-weight: 800;
+  color: #14121a;
+}
+
+.stadium-facts span {
+  display: block;
+  margin-top: 8px;
+  color: #5a5661;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.inline-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  text-decoration: none;
+}
+
+.faq-panel {
+  padding: 20px 0 32px;
+}
+
+.faq-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.faq-list details {
+  border: 1px solid rgba(20, 18, 26, 0.08);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.68);
+  padding: 0 22px;
+}
+
+.faq-list summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 18px 0;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #14121a;
+}
+
+.faq-list summary::-webkit-details-marker { display: none; }
+
+.faq-list p {
+  margin: 0 0 18px;
+  color: #4f4a53;
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.faq-panel .inline-link {
+  margin-top: 20px;
+}
+
+.talanta-home .content-section {
+  padding: 48px 0 72px;
+}
+
+.talanta-home .section-heading {
+  margin-bottom: 22px;
+}
+
+@media (max-width: 900px) {
+  .talanta-hero-inner,
+  .stadium-showcase {
+    grid-template-columns: 1fr;
+  }
+
+  .talanta-hero-inner {
+    padding-top: 100px;
+    padding-bottom: 36px;
+  }
+
+  .talanta-hero-visual {
+    min-height: 280px;
+  }
+
+  .stadium-showcase {
+    padding-top: 56px;
+  }
+
+  .landing-header {
+    position: static;
+    background: rgba(14, 12, 16, 0.9);
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-header {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .landing-header .main-nav {
+    display: none;
+  }
+
+  .landing-header .header-actions {
+    margin-left: auto;
+  }
+
+  .landing-header .button-small {
+    min-height: 38px;
+    padding: 0 12px;
+  }
+
+  .talanta-hero-inner,
+  .stadium-showcase,
+  .faq-panel,
+  .talanta-home .content-section {
+    width: min(100% - 24px, 1160px);
+  }
+
+  .notify-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .notify-form button {
+    width: 100%;
+  }
+
+  .stadium-facts {
+    grid-template-columns: 1fr;
+  }
+}
 button, input, select, textarea { font: inherit; }
 button, a, select { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
@@ -43,6 +489,24 @@ h1, h2, h3, .brand { font-family: "Manrope", sans-serif; }
 .brand-mark { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; color: var(--navy); background: var(--green); font-size: 18px; font-weight: 800; }
 .brand-period { color: #90b949; }
 .main-nav { display: flex; align-items: center; gap: 27px; color: #566078; font-size: 13px; font-weight: 600; }
+
+.landing-footer {
+  background: #0d0b11;
+  color: rgba(255,255,255,0.78);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.landing-footer .brand,
+.landing-footer a,
+.landing-footer span,
+.landing-footer .brand-period {
+  color: rgba(255,255,255,0.9);
+}
+
+.landing-footer .brand-mark {
+  background: var(--accent);
+  color: #fff;
+}
 .main-nav > a, .sports-menu > span { transition: color .2s ease; }
 .main-nav > a:hover, .sports-menu:hover > span { color: var(--ink); }
 .sports-menu { position: relative; cursor: pointer; padding: 12px 0; }

@@ -144,7 +144,9 @@ function RequireUser({ admin = false }) {
 function SiteHeader() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [search, setSearch] = useState("");
+  const isLanding = location.pathname === "/";
 
   const logout = async () => {
     try {
@@ -157,38 +159,50 @@ function SiteHeader() {
   };
 
   return (
-    <header className="site-header">
+    <header className={`site-header${isLanding ? " landing-header" : ""}`}>
       <Link className="brand" to="/" aria-label="Ticketify home">
         <span className="brand-mark">T</span>
         <span>ticketify<span className="brand-period">.</span></span>
       </Link>
-      <nav className="main-nav" aria-label="Main navigation">
-        <Link to="/">Discover</Link>
-        <div className="sports-menu">
-          <span>Sports <i className="bi bi-chevron-down" /></span>
-          <div className="sports-menu-panel">
-            {sports.map((sport) => (
-              <Link key={sport} to={`/${sport}`}>{capitalize(sport)}</Link>
-            ))}
-          </div>
-        </div>
+      <nav className={`main-nav${isLanding ? " nav-alt" : ""}`} aria-label="Main navigation">
+        {isLanding ? (
+          <>
+            <Link to="/#top">Match info</Link>
+            <Link to="/#about">About</Link>
+            <Link to="/#faq">Tickets</Link>
+          </>
+        ) : (
+          <>
+            <Link to="/">Discover</Link>
+            <div className="sports-menu">
+              <span>Sports <i className="bi bi-chevron-down" /></span>
+              <div className="sports-menu-panel">
+                {sports.map((sport) => (
+                  <Link key={sport} to={`/${sport}`}>{capitalize(sport)}</Link>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </nav>
-      <form
-        className="header-search"
-        onSubmit={(event) => {
-          event.preventDefault();
-          navigate(`/?search=${encodeURIComponent(search)}`);
-        }}
-      >
-        <i className="bi bi-search" />
-        <input
-          aria-label="Search matches"
-          placeholder="Search matches"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <button type="submit" aria-label="Submit search"><i className="bi bi-arrow-return-left" /></button>
-      </form>
+      {!isLanding && (
+        <form
+          className="header-search"
+          onSubmit={(event) => {
+            event.preventDefault();
+            navigate(`/?search=${encodeURIComponent(search)}`);
+          }}
+        >
+          <i className="bi bi-search" />
+          <input
+            aria-label="Search matches"
+            placeholder="Search matches"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <button type="submit" aria-label="Submit search"><i className="bi bi-arrow-return-left" /></button>
+        </form>
+      )}
       <div className="header-actions">
         {user ? (
           <>
@@ -209,8 +223,11 @@ function SiteHeader() {
 }
 
 function SiteFooter() {
+  const location = useLocation();
+  const isLanding = location.pathname === "/";
+
   return (
-    <footer className="site-footer">
+    <footer className={`site-footer${isLanding ? " landing-footer" : ""}`}>
       <Link className="brand brand-footer" to="/"><span className="brand-mark">T</span><span>ticketify<span className="brand-period">.</span></span></Link>
       <span>Make memories. Live the game.</span>
       <div><Link to="/contact">Contact</Link><span>© {new Date().getFullYear()} Ticketify</span></div>
@@ -243,36 +260,76 @@ function HomePage() {
   };
 
   return (
-    <main className="marketplace-home">
-      <section className="market-hero">
-        <div className="market-hero-copy">
-          <span className="market-eyebrow"><span /> TICKETIFY LIVE</span>
-          <h1>Find your next<br /><em>live moment.</em></h1>
-          <p>Big games. Great seats. Your next day out starts here.</p>
+    <main className="marketplace-home talanta-home">
+      <section className="talanta-hero" id="top">
+        <div className="talanta-hero-inner">
+          <div className="talanta-hero-copy">
+            <p className="hero-overline">Bayern Munich <span>vs</span> Ajax</p>
+            <h1>Bayern Munich <span>vs</span> Ajax</h1>
+            <p className="event-meta">Tue 5 Jan 2027 · Gates open at 11:00</p>
+            <p className="event-venue">Raila Odinga International Stadium, Nairobi</p>
+            <div className="ticket-availability">Tickets on sale Thu 5 Nov, 18:00</div>
+            <div className="countdown" aria-label="Countdown to event">
+              {[
+                ["days", "--"],
+                ["hours", "--"],
+                ["mins", "--"],
+                ["secs", "--"],
+              ].map(([label, value]) => (
+                <div key={label} className="countdown-box">
+                  <strong>{value}</strong>
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
+            <form className="notify-form" onSubmit={(event) => event.preventDefault()}>
+              <input type="email" placeholder="Email address" aria-label="Email address" />
+              <button type="submit">Notify me</button>
+            </form>
+            <small>By submitting your email, you also agree for us to send you news and updates about Talanta Sports City.</small>
+          </div>
+          <div className="talanta-hero-visual" aria-label="Stadium exterior" />
         </div>
-        <form className="market-search" onSubmit={(event) => { event.preventDefault(); updateFilters(sport, searchText.trim()); }}>
-          <i className="bi bi-search" />
-          <input
-            aria-label="Search events"
-            placeholder="Search teams, matches, or venues"
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-          />
-          <button type="submit">Search <i className="bi bi-arrow-right" /></button>
-        </form>
-        <nav className="market-category-list" aria-label="Browse events by sport">
-          {categories.map(([value, label, icon]) => (
-            <Link
-              className={`market-category${sport === value ? " is-active" : ""}`}
-              key={value}
-              to={value === "all" ? "/" : `/${value}`}
-              aria-current={sport === value ? "page" : undefined}
-            >
-              <i className={`bi ${icon}`} />{label}
-            </Link>
-          ))}
-        </nav>
       </section>
+
+      <section className="stadium-showcase" id="about">
+        <div className="stadium-showcase-media" />
+        <div className="stadium-showcase-copy">
+          <span className="section-kicker">The Stadium</span>
+          <h2>Raila Odinga International Stadium</h2>
+          <p>Welcome to the Raila Odinga International Stadium, a 60,000-seat venue built for the passion of sports and the energy of live entertainment. This is where Kenya's sporting ambition meets the world.</p>
+          <ul className="stadium-facts">
+            <li><strong>60,000</strong><span>seats</span></li>
+            <li><strong>Ngong Rd</strong><span>Nairobi</span></li>
+            <li><strong>AFCON</strong><span>2027 co-host</span></li>
+          </ul>
+          <Link className="inline-link" to="/contact">About the Stadium</Link>
+        </div>
+      </section>
+
+      <section className="faq-panel" id="faq">
+        <div className="section-kicker">Questions</div>
+        <div className="faq-list">
+          <details open>
+            <summary>How do I get my tickets?</summary>
+            <p>By SMS and e-mail straight after you pay. They are also under My tickets: log in with the phone or e-mail you bought with.</p>
+          </details>
+          <details>
+            <summary>Can I sit next to my friends?</summary>
+            <p>Yes. Choose how many tickets, then “Find my seats”: up to 4 seats side by side. Bigger groups get blocks close together, for example 4 + 2.</p>
+          </details>
+          <details>
+            <summary>What does “No Re-entry” mean?</summary>
+            <p>The No Re-entry policy for the inaugural match means that once you enter the stadium and your ticket is scanned, you will not be allowed to leave and return using the same ticket. Please ensure you have everything you need before entering the stadium.</p>
+          </details>
+          <details>
+            <summary>How can I pay?</summary>
+            <p>M-Pesa or card. You see the full total, with the processing fee, before you pay.</p>
+          </details>
+        </div>
+        <Link className="inline-link" to="/contact">All questions</Link>
+      </section>
+
       <section className="content-section event-section" id="matches">
         <div className="section-heading">
           <div><span className="eyebrow">THE LIVE LINEUP</span><h2>{search ? "Search results" : "Upcoming events"}</h2></div>
