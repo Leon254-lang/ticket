@@ -83,8 +83,9 @@ body { margin: 0; background: #f7f8fb; color: var(--ink); }
   position: relative;
   isolation: isolate;
   background:
-    linear-gradient(90deg, rgba(14, 12, 16, 0.88), rgba(14, 12, 16, 0.42) 38%, rgba(14, 12, 16, 0.64) 100%),
-    url('https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1500&q=80') center/cover no-repeat;
+    linear-gradient(90deg, rgba(14, 12, 16, 0.98) 0%, rgba(14, 12, 16, 0.88) 35%, rgba(14, 12, 16, 0.18) 68%, rgba(14, 12, 16, 0.12) 100%),
+    url('/images/matches/bayern-munich-vs-ajax-poster.jpg') right center / auto 100% no-repeat,
+    #0e0c10;
   color: var(--night-ink);
 }
 
@@ -93,9 +94,8 @@ body { margin: 0; background: #f7f8fb; color: var(--ink); }
   min-height: min(92vh, 760px);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 36px;
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
   padding: 120px 0 52px;
 }
 
@@ -249,17 +249,6 @@ body { margin: 0; background: #f7f8fb; color: var(--ink); }
   color: rgba(245, 241, 234, 0.7);
 }
 
-.talanta-hero-visual {
-  transform: translateY(16px);
-  min-height: 420px;
-  border: 1px solid rgba(255,255,255,0.22);
-  border-radius: 26px;
-  background:
-    linear-gradient(180deg, rgba(14,12,16,0.12), rgba(14,12,16,0.55)),
-    url('https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
-  box-shadow: 0 40px 70px rgba(0,0,0,0.32);
-}
-
 .stadium-showcase,
 .faq-panel,
 .content-section {
@@ -280,7 +269,7 @@ body { margin: 0; background: #f7f8fb; color: var(--ink); }
   border-radius: 28px;
   background:
     linear-gradient(180deg, rgba(20,18,26,0.12), rgba(20,18,26,0.4)),
-    url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
+    url('https://talantasportscity.com/brand/stadium/bowl-640.webp') center/cover no-repeat;
   box-shadow: 0 26px 54px rgba(17, 15, 19, 0.18);
 }
 
@@ -413,10 +402,6 @@ body { margin: 0; background: #f7f8fb; color: var(--ink); }
     padding-bottom: 36px;
   }
 
-  .talanta-hero-visual {
-    min-height: 280px;
-  }
-
   .stadium-showcase {
     padding-top: 56px;
   }
@@ -463,6 +448,13 @@ body { margin: 0; background: #f7f8fb; color: var(--ink); }
   .faq-panel,
   .talanta-home .content-section {
     width: min(100% - 24px, 1160px);
+  }
+
+  .talanta-hero {
+    background:
+      linear-gradient(180deg, rgba(14, 12, 16, 0.96) 0%, rgba(14, 12, 16, 0.9) 54%, rgba(14, 12, 16, 0.26) 100%),
+      url('/images/matches/bayern-munich-vs-ajax-poster.jpg') center bottom / auto 48% no-repeat,
+      #0e0c10;
   }
 
   .notify-form {
@@ -1016,6 +1008,331 @@ tbody tr:last-child td { border-bottom: 0; }
 }
 .featured-ticket-booking-link:hover {
   background: #a90000;
+}
+
+.app-shell:has(.seat-selection-page) {
+  min-height: 100vh;
+  background: #f5f6f8;
+}
+.seat-selection-page {
+  --seat-ink: #17191d;
+  --seat-muted: #727984;
+  --seat-line: #e4e6ea;
+  --seat-surface: #fff;
+  min-height: 100vh;
+  padding: 0 24px 32px;
+  color: var(--seat-ink);
+  background: #f5f6f8;
+  font-family: "Barlow", "Segoe UI", sans-serif;
+}
+.seat-event-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.seat-toolbar {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 1.5fr) 1fr;
+  align-items: center;
+  gap: 20px;
+  max-width: 1500px;
+  margin: 0 auto;
+  border-bottom: 1px solid var(--seat-line);
+}
+.seat-back-link,
+.seat-event-summary,
+.seat-toolbar-actions {
+  display: flex;
+  align-items: center;
+}
+.seat-back-link {
+  width: fit-content;
+  gap: 9px;
+  color: var(--seat-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.seat-back-link i { font-size: 18px; }
+.seat-event-summary { min-width: 0; gap: 12px; }
+.seat-event-summary > span:last-child { min-width: 0; display: grid; gap: 4px; }
+.seat-event-summary strong {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.seat-event-summary small {
+  overflow: hidden;
+  color: var(--seat-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.seat-event-thumb {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  background: linear-gradient(145deg, #1d2735, #83918a);
+  color: white;
+  font-size: 18px;
+}
+.seat-toolbar-actions { justify-content: flex-end; gap: 10px; }
+.seat-icon-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--seat-ink);
+  font-size: 17px;
+}
+.seat-icon-button:hover { background: #e9ebef; }
+.seat-selection-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(340px, .75fr);
+  gap: 22px;
+  max-width: 1500px;
+  margin: 22px auto 0;
+}
+.seat-map-panel,
+.seat-section-panel {
+  min-width: 0;
+  background: var(--seat-surface);
+  border: 1px solid var(--seat-line);
+}
+.seat-map-panel { overflow: hidden; }
+.seat-map-controls {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+}
+.seat-zoom-controls,
+.seat-level-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.seat-zoom-controls button {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--seat-line);
+  border-radius: 2px;
+  background: var(--seat-surface);
+  color: var(--seat-ink);
+  font-size: 19px;
+  font-weight: 700;
+}
+.seat-level-filters button {
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid var(--seat-ink);
+  background: var(--seat-ink);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.seat-level-filters button[aria-pressed="false"] {
+  background: var(--seat-surface);
+  color: var(--seat-muted);
+  border-color: var(--seat-line);
+}
+.seat-map-viewport {
+  min-height: 510px;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  background: #edf0f5;
+}
+.stadium-seat-map {
+  width: min(100%, 820px);
+  min-width: 560px;
+  transform-origin: center;
+  transition: transform .18s ease;
+}
+.seat-map-labels {
+  fill: #59616d;
+  font-family: "Barlow", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+.seat-map-level-1 { opacity: .44; }
+.seat-map-level-2 { opacity: .68; }
+.seat-map-level-3 { opacity: 1; }
+.seat-map-compass {
+  fill: #68717e;
+  font-size: 13px;
+  font-weight: 800;
+  writing-mode: vertical-rl;
+}
+.seat-map-north { fill: #17191d; font-size: 17px; font-weight: 900; }
+.seat-map-legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 0;
+  padding: 18px;
+  list-style: none;
+  color: #424852;
+  font-size: 12px;
+}
+.seat-map-legend li { display: flex; align-items: center; gap: 7px; }
+.seat-map-legend li span {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+}
+.legend-available { background: #5783d5; }
+.legend-selected { background: #b90000; }
+.legend-taken { background: #bec4cd; }
+.legend-yours { background: #17191d; }
+.seat-section-panel { padding: 22px; }
+.seat-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.seat-section-heading h2 {
+  margin: 0;
+  font-size: 21px;
+  letter-spacing: -.03em;
+}
+.seat-section-heading span {
+  display: block;
+  margin-top: 6px;
+  color: var(--seat-muted);
+  font-size: 12px;
+}
+.seat-sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 20px 0 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--seat-line);
+}
+.seat-sort-controls > span {
+  margin-right: auto;
+  color: var(--seat-muted);
+  font-size: 12px;
+}
+.seat-sort-controls button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--seat-line);
+  background: var(--seat-surface);
+  color: var(--seat-muted);
+  font-size: 11px;
+}
+.seat-sort-controls button[aria-pressed="true"] {
+  border-color: var(--seat-ink);
+  color: var(--seat-ink);
+  font-weight: 700;
+}
+.seat-section-list { display: grid; gap: 8px; }
+.seat-section-option {
+  width: 100%;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--seat-line);
+  background: var(--seat-surface);
+  color: var(--seat-ink);
+  text-align: left;
+}
+.seat-section-option:hover,
+.seat-section-option.is-selected {
+  border-color: #9aa2ae;
+  background: #f8f9fb;
+}
+.seat-section-copy { display: grid; gap: 4px; }
+.seat-section-copy strong { font-size: 13px; }
+.seat-section-copy span { color: #555d68; font-size: 12px; }
+.seat-section-copy small { color: var(--seat-muted); font-size: 11px; }
+.seat-section-option > i { color: #88909c; font-size: 14px; }
+.seat-empty-state {
+  padding: 16px;
+  color: var(--seat-muted);
+  font-size: 13px;
+}
+.seat-sale-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 13px;
+  background: #f2f4f7;
+  color: #535b66;
+}
+.seat-sale-note i { margin-top: 2px; color: #303741; }
+.seat-sale-note p { margin: 0; font-size: 12px; line-height: 1.5; }
+.seat-official-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 17px;
+  color: var(--seat-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+.seat-selection-dark {
+  --seat-ink: #f3f4f6;
+  --seat-muted: #aeb4be;
+  --seat-line: #353a44;
+  --seat-surface: #20242c;
+  background: #181b21;
+}
+.seat-selection-dark .seat-map-viewport { background: #dce1e8; }
+.seat-selection-dark .seat-icon-button:hover,
+.seat-selection-dark .seat-section-option:hover,
+.seat-selection-dark .seat-section-option.is-selected { background: #2b303a; }
+.seat-selection-dark .seat-section-copy span,
+.seat-selection-dark .seat-map-legend { color: #c6cbd3; }
+.seat-selection-dark .seat-sale-note { background: #2b303a; color: #d5d9df; }
+.seat-selection-dark .seat-sale-note i { color: #f3f4f6; }
+
+@media (max-width: 900px) {
+  .seat-selection-page { padding: 0 16px 24px; }
+  .seat-selection-layout { grid-template-columns: minmax(0, 1fr); }
+  .seat-map-viewport { min-height: 430px; }
+}
+@media (max-width: 600px) {
+  .seat-selection-page { padding: 0 10px 18px; }
+  .seat-toolbar {
+    min-height: 64px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 9px;
+  }
+  .seat-back-link span { display: none; }
+  .seat-event-summary { gap: 8px; }
+  .seat-event-thumb { width: 36px; height: 36px; }
+  .seat-event-summary strong { font-size: 13px; }
+  .seat-event-summary small { max-width: 45vw; font-size: 9px; }
+  .seat-toolbar-actions { gap: 0; }
+  .seat-icon-button { width: 31px; height: 36px; }
+  .seat-selection-layout { gap: 12px; margin-top: 12px; }
+  .seat-map-controls { align-items: flex-start; flex-direction: column-reverse; gap: 12px; padding: 12px; }
+  .seat-level-filters { width: 100%; }
+  .seat-level-filters button { flex: 1; padding: 0 8px; font-size: 9px; }
+  .seat-map-viewport { min-height: 320px; }
+  .stadium-seat-map { min-width: 500px; }
+  .seat-map-legend { gap: 10px; padding: 13px 8px; font-size: 10px; }
+  .seat-section-panel { padding: 16px; }
 }
 
 .event-header {

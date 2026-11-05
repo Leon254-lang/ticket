@@ -26,6 +26,11 @@ const featuredTicketOptions = [
   { phase: "Phase 1", location: "Sections 414 & 412 · Level 3", price: "KSh 5,000" },
   { phase: "Phase 1", location: "Sections 207–214", price: "KSh 20,000" },
 ];
+const seatLevels = [
+  { id: 1, name: "Level 1", sections: "101–128", count: 28 },
+  { id: 2, name: "Level 2", sections: "201–220", count: 20 },
+  { id: 3, name: "Level 3", sections: "401–435", count: 36 },
+];
 const adminSections = [
   ["Dashboard", "/adminpanel/dashboard"],
   ["Users", "/adminpanel/users"],
@@ -75,6 +80,8 @@ function useRequest(path, dependencies = []) {
 function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const location = useLocation();
+  const isSeatSelectionPage = location.pathname === "/events/fc-bayern-munchen-vs-afc-ajax/seats";
 
   const refreshUser = async () => {
     try {
@@ -102,9 +109,10 @@ function App() {
   return (
     <AuthContext.Provider value={authValue}>
       <div className="app-shell">
-        <SiteHeader />
+        {!isSeatSelectionPage && <SiteHeader />}
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/events/fc-bayern-munchen-vs-afc-ajax/seats" element={<SeatsPage />} />
           <Route path="/football" element={<SportEventsPage sport="football" />} />
           <Route path="/basketball" element={<SportEventsPage sport="basketball" />} />
           <Route path="/volleyball" element={<SportEventsPage sport="volleyball" />} />
@@ -132,7 +140,7 @@ function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="*" element={<LegacyRedirect />} />
         </Routes>
-        <SiteFooter />
+        {!isSeatSelectionPage && <SiteFooter />}
       </div>
     </AuthContext.Provider>
   );
@@ -295,7 +303,6 @@ function HomePage() {
             </form>
             <small>By submitting your email, you also agree for us to send you news and updates about Talanta Sports City.</small>
           </div>
-          <div className="talanta-hero-visual" aria-label="Stadium exterior" />
         </div>
       </section>
 
@@ -317,8 +324,8 @@ function HomePage() {
           ))}
         </div>
         <div className="featured-ticket-footer">
-          <p>Official event information: <a href="https://talantasportscity.com" target="_blank" rel="noreferrer">talantasportscity.com</a></p>
-          <a className="featured-ticket-booking-link" href="/#matches">Find tickets on Ticketify <i className="bi bi-arrow-up-right" aria-hidden="true" /></a>
+          <p>Official event link: <Link to="/events/fc-bayern-munchen-vs-afc-ajax/seats">talantasportscity.com</Link></p>
+          <Link className="featured-ticket-booking-link" to="/events/fc-bayern-munchen-vs-afc-ajax/seats">Find tickets on Ticketify <i className="bi bi-arrow-up-right" aria-hidden="true" /></Link>
         </div>
       </section>
 
@@ -372,6 +379,172 @@ function HomePage() {
           <EmptyState title="No events found" text="Try another sport or search for a different team or venue." />
         )}
       </section>
+    </main>
+  );
+}
+
+function SeatsPage() {
+  const [enabledLevels, setEnabledLevels] = useState([1, 2, 3]);
+  const [sortMode, setSortMode] = useState("cheapest");
+  const [selectedSection, setSelectedSection] = useState("");
+  const [zoom, setZoom] = useState(1);
+  const [darkMode, setDarkMode] = useState(false);
+  const [saleOpen, setSaleOpen] = useState(
+    Date.now() >= new Date("2026-11-05T18:00:00+03:00").valueOf()
+  );
+  const sections = featuredTicketOptions
+    .map((option) => ({
+      ...option,
+      sectionNumber: option.location.match(/\d+/)?.[0] || "",
+      level: option.location.includes("207") ? 2 : 3,
+    }))
+    .filter((option) => enabledLevels.includes(option.level))
+    .sort((left, right) => {
+      if (sortMode === "section") return Number(left.sectionNumber) - Number(right.sectionNumber);
+      return Number(left.price.replace(/\D/g, "")) - Number(right.price.replace(/\D/g, ""));
+    });
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setSaleOpen(Date.now() >= new Date("2026-11-05T18:00:00+03:00").valueOf());
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const toggleLevel = (level) => {
+    setEnabledLevels((current) =>
+      current.includes(level)
+        ? current.filter((value) => value !== level)
+        : [...current, level]
+    );
+  };
+
+  return (
+    <main className={`seat-selection-page${darkMode ? " seat-selection-dark" : ""}`}>
+      <header className="seat-event-heading">
+        <h1>Bayern Munich vs Ajax</h1>
+        <p>Tue 5 Jan 2027 · Gates open at 11:00 · Raila Odinga International Stadium, Nairobi</p>
+      </header>
+      <div className="seat-toolbar">
+        <Link className="seat-back-link" to="/#ticket-prices" aria-label="Back to the match">
+          <i className="bi bi-arrow-left" /> <span>Back to the match</span>
+        </Link>
+        <div className="seat-event-summary">
+          <span className="seat-event-thumb" aria-hidden="true"><i className="bi bi-trophy" /></span>
+          <span><strong>Bayern Munich vs Ajax</strong><small>Tue 5 Jan 2027 · 11:00 · Raila Odinga International Stadium, Nairobi</small></span>
+        </div>
+        <div className="seat-toolbar-actions">
+          <button type="button" className="seat-icon-button" aria-label={darkMode ? "Switch to light theme" : "Switch to dark theme"} onClick={() => setDarkMode((current) => !current)}>
+            <i className={`bi ${darkMode ? "bi-sun" : "bi-moon"}`} />
+          </button>
+          <Link className="seat-icon-button" to="/signin" aria-label="Log in"><i className="bi bi-person" /></Link>
+        </div>
+      </div>
+      <div className="seat-selection-layout">
+        <section className="seat-map-panel" aria-label="Stadium seat map">
+          <div className="seat-map-controls">
+            <div className="seat-zoom-controls" aria-label="Map zoom controls">
+              <button type="button" aria-label="Zoom in" onClick={() => setZoom((current) => Math.min(current + 0.1, 1.5))}>+</button>
+              <button type="button" aria-label="Zoom out" onClick={() => setZoom((current) => Math.max(current - 0.1, 0.7))}>−</button>
+              <button type="button" aria-label="Reset view" onClick={() => setZoom(1)}>⟲</button>
+            </div>
+            <div className="seat-level-filters" role="group" aria-label="Filter by level">
+              {seatLevels.map((level) => (
+                <button key={level.id} type="button" aria-pressed={enabledLevels.includes(level.id)} onClick={() => toggleLevel(level.id)}>
+                  {level.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="seat-map-viewport">
+            <svg
+              className="stadium-seat-map"
+              viewBox="0 0 760 540"
+              role="img"
+              aria-label="Raila Odinga International Stadium seat map. North is to the right."
+              style={{ transform: `scale(${zoom})` }}
+            >
+              <rect width="760" height="540" fill="transparent" />
+              <g fill="none" stroke="#c6ccd5" strokeWidth="18">
+                <ellipse cx="380" cy="270" rx="300" ry="210" />
+                <ellipse cx="380" cy="270" rx="274" ry="184" />
+                <ellipse cx="380" cy="270" rx="248" ry="158" />
+                <ellipse cx="380" cy="270" rx="222" ry="132" />
+              </g>
+              <ellipse cx="380" cy="270" rx="202" ry="112" fill="#e1e5eb" />
+              <rect x="250" y="188" width="260" height="164" rx="3" fill="#78b98e" stroke="#f4fff5" strokeWidth="3" />
+              <path d="M380 190v160M250 270h260" stroke="#f4fff5" strokeWidth="2" />
+              <circle cx="380" cy="270" r="32" fill="none" stroke="#f4fff5" strokeWidth="2" />
+              <rect x="250" y="225" width="34" height="90" fill="none" stroke="#f4fff5" strokeWidth="2" />
+              <rect x="476" y="225" width="34" height="90" fill="none" stroke="#f4fff5" strokeWidth="2" />
+              <g className="seat-map-labels">
+                {seatLevels.filter((level) => enabledLevels.includes(level.id)).map((level, index) => (
+                  <g key={level.id} className={`seat-map-level seat-map-level-${level.id}`}>
+                    {Array.from({ length: 9 }, (_, item) => {
+                      const number = Number(level.sections.split("–")[0]) + item;
+                      const x = 170 + item * 53;
+                      const y = index % 2 ? 103 : 78;
+                      return <text key={`top-${number}`} x={x} y={y}>{number}</text>;
+                    })}
+                    {Array.from({ length: 9 }, (_, item) => {
+                      const number = Number(level.sections.split("–")[0]) + 17 + item;
+                      const x = 170 + item * 53;
+                      const y = index % 2 ? 438 : 463;
+                      return <text key={`bottom-${number}`} x={x} y={y}>{number}</text>;
+                    })}
+                  </g>
+                ))}
+              </g>
+              <text className="seat-map-compass" x="48" y="273">SOUTH</text>
+              <text className="seat-map-compass" x="665" y="273">NORTH</text>
+              <text className="seat-map-north" x="706" y="72">N</text>
+            </svg>
+          </div>
+          <ul className="seat-map-legend" aria-label="Seat colours">
+            <li><span className="legend-available" />Available</li>
+            <li><span className="legend-selected" />Selected</li>
+            <li><span className="legend-taken" />Taken</li>
+            <li><span className="legend-yours" />Your seats</li>
+          </ul>
+        </section>
+        <aside className="seat-section-panel">
+          <div className="seat-section-heading">
+            <div><h2>Or choose a section</h2><span>{saleOpen ? `${sections.length} sections shown` : "0 sections available"}</span></div>
+          </div>
+          <div className="seat-sort-controls" role="group" aria-label="Sort sections">
+            <span>Sort by</span>
+            <button type="button" aria-pressed={sortMode === "cheapest"} onClick={() => setSortMode("cheapest")}>Cheapest</button>
+            <button type="button" aria-pressed={sortMode === "section"} onClick={() => setSortMode("section")}>Section</button>
+          </div>
+          {!enabledLevels.length ? (
+            <p className="seat-empty-state">Select a level to browse its sections.</p>
+          ) : (
+            <div className="seat-section-list">
+              {sections.map((section) => (
+                <button
+                  type="button"
+                  className={`seat-section-option${selectedSection === section.location ? " is-selected" : ""}`}
+                  key={section.location}
+                  aria-pressed={selectedSection === section.location}
+                  onClick={() => setSelectedSection(section.location)}
+                >
+                  <span className="seat-section-copy">
+                    <strong>{section.level === 2 ? "Level 2" : "Level 3"}</strong>
+                    <span>{section.location.replace(" · Level 3", "").replace(" · Level 2", "")}</span>
+                    <small>{saleOpen ? section.price : "Not yet on sale"}</small>
+                  </span>
+                  <i className="bi bi-chevron-right" aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="seat-sale-note">
+            <i className="bi bi-clock" aria-hidden="true" />
+            <p>{saleOpen ? "Ticket sales have opened. Check Ticketify for live availability." : "Tickets go on sale Thursday, 5 November at 6:00 PM EAT."}</p>
+          </div>
+          <Link className="seat-official-link" to="/">talantasportscity.com <i className="bi bi-arrow-up-right" aria-hidden="true" /></Link>
+        </aside>
+      </div>
     </main>
   );
 }
